@@ -1,0 +1,49 @@
+############
+# Funnotate
+############
+
+# General settings
+num_threads: 5
+# error_log: temp/funnotate.err
+
+# ESTScan
+estscan:
+  exe: /home/svengato/estscan-3.0.3/estscan
+  matrix: /home/svengato/smat/medicago.smat
+
+# BLAST: expects the databases in indexed format (.phr, .pin, .psq)
+blast:
+  exe: /erdos/adf/e00/adf/blast-2.2.23/bin/blastall
+  # To use blastp [...] instead of blastall -p blastp [...],
+  # exe: /usr/bin/blastp
+  dbs:
+    - /erdos/adf/e01/lis/AHRD/blast/TAIR10_pep_20101209
+    - /erdos/adf/e01/lis/AHRD/blast/Glyma.refseq_protein.fasta
+    - /erdos/adf/e01/lis/AHRD/blast/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
+
+# AHRD
+ahrd:
+  java: /usr/bin/java
+  jar: /home/svengato/AHRD/ahrd.jar
+  # Possible alternatives?
+  # java: /erdos/adf/sw/jdk1.7.0/bin/java
+  # jar: /erdos/adf/e01/lis/AHRD/2.0-stable/bin/ahrd.jar
+  yml: ahrd/ahrd_nosp.yml
+
+# InterPro
+interpro:
+  exe: /erdos/adf/sw/interproscan-5.3-46.0/interproscan-java1.7.sh
+  # Possible alternative:
+  # exe <- /erdos/adf/sw/interproscan-5.3-46.0/interproscan.sh
+  params: -appl TIGRFAM,ProDom,SMART,SUPERFAMILY,PANTHER,Gene3D,PIRSF,Pfam,Coils
+
+# HMMer
+hmmer:
+  exe: /erdos/adf/sw/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmscan
+  db: /erdos/svengato/hmmdb/legfed_v1_0/legfed_v1_0.hmm
+  # Unused:
+  # params: [...]
+  # target_families: [...]/07_family_fasta
+
+############
+

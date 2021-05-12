@@ -1,0 +1,1 @@
+(?i)\bhypothetical\s+protein\b

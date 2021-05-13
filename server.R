@@ -125,7 +125,7 @@ if (isActive(rv$job)) {
 }
 
     # Format job duration
-    elapsedTime <- rv$job$endTime - rv$job$startTime
+    elapsedTime <- as.POSIXct(rv$job$endTime) - as.POSIXct(rv$job$startTime)
     ss <- as.integer(round(as.double(elapsedTime, units = "secs")))
     hh <- ss %/% 3600
     ss <- ss - hh*3600

@@ -31,6 +31,10 @@ countBadChars <- function(ss0, ss1) {
 #   ns <- nchar(ss)
 # }
 
+currentTimeString <- function() {
+  as.character(Sys.time())
+}
+
 # --------------------------------------------------------------
 
 # fiData is the value of a Shiny fileInput control,
@@ -162,7 +166,7 @@ isActive <- function(job) {
 
 failJob <- function(job) {
   job$status <- "failure"
-  job$endTime <- Sys.time()
+  job$endTime <- currentTimeString()
   job
 }
 
@@ -184,7 +188,7 @@ runESTScan <- function(job, settings, quiet) {
   } else {
     job$messages <- c(job$messages, "ESTScan: Failed, no output file")
     job$status <- "failure"
-    job$endTime <- Sys.time()
+    job$endTime <- currentTimeString()
   }
   job
 }
@@ -208,7 +212,7 @@ runBLAST <- function(job, settings, quiet) {
     } else {
       job$messages <- c(job$messages, paste("BLAST: Failed, no output file", i))
       job$status <- "failure"
-      job$endTime <- Sys.time()
+      job$endTime <- currentTimeString()
     }
   }
   job
@@ -246,7 +250,7 @@ runAHRD <- function(job, settings, quiet) {
   } else {
     job$messages <- c(job$messages, "AHRD: Failed, no output file")
     job$status <- "failure"
-    job$endTime <- Sys.time()
+    job$endTime <- currentTimeString()
   }
   job
 }
@@ -277,12 +281,12 @@ runInterPro <- function(job, settings, quiet) {
     } else {
       job$messages <- c(job$messages, "InterPro: Failed to convert XML to raw (txt)")
       job$status <- "failure"
-      job$endTime <- Sys.time()
+      job$endTime <- currentTimeString()
     }
   } else {
     job$messages <- c(job$messages, "InterPro: Failed, no XML output")
     job$status <- "failure"
-    job$endTime <- Sys.time()
+    job$endTime <- currentTimeString()
   }
   job
 }
@@ -300,7 +304,7 @@ runHMMer <- function(job, settings, quiet) {
   } else {
     job$messages <- c(job$messages, "HMMer: Failed, no output")
     job$status <- "failure"
-    job$endTime <- Sys.time()
+    job$endTime <- currentTimeString()
   }
   job
 }
@@ -310,7 +314,7 @@ runJob <- function(job, quiet = TRUE) {
   settings <- read_yaml("settings.yml")
 
   if (!dir.exists(job$dir)) dir.create(job$dir)
-  job$startTime <- Sys.time()
+  job$startTime <- currentTimeString()
 
   # ESTScan
   if (job$sequenceType == "nucleotide") {
@@ -334,7 +338,7 @@ runJob <- function(job, quiet = TRUE) {
   # Job completed!
   if (isActive(job)) {
     job$status <- "success"
-    job$endTime <- Sys.time()
+    job$endTime <- currentTimeString()
     #job$messages <- c(job$messages, "Done.")
   }
   write_yaml(job, job$jobFile)

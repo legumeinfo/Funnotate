@@ -44,7 +44,8 @@ server <- function(input, output, session) {
 
   # TODO: use updateQueryString(q, mode = "push") ?
   observeEvent(c(input$uhome, input$jhome), {
-    reset("browse") # fileInput clears text, but input$browse data still exist
+    updateTextAreaInput(session, "seqText", value = "")
+    reset("seqFile") # fileInput clears text, but input$seqFile data still exist
     output$page <- renderText("home")
     clearQueryString()
   }, ignoreInit = TRUE)
@@ -58,8 +59,23 @@ server <- function(input, output, session) {
   }
 
   observeEvent(input$upload, {
-    if (is.null(input$browse)) return() # TODO: post error message
-    rv$upload <- createNewUpload(input$browse, substr(input$seqType, 1, 1)) # TODO: version for text input
+    seqText <- trimws(input$seqText)
+    seqType <- substr(input$seqType, 1, 1)
+    if (input$seqSource == "From text") {
+      # read sequence(s) from text area
+      seqSize <- nchar(seqText)
+      if (seqSize == 0) return() # TODO: post error message
+      # save to temporary file
+      tempSeqFile <- "temp/pasted-text.fasta"
+      write(seqText, tempSeqFile)
+      seq <- list(name = "Pasted text", size = seqSize, datapath = tempSeqFile)
+      rv$upload <- createNewUpload(seq, seqType)
+      system(paste("rm", tempSeqFile))
+    } else {
+      # read sequence(s) from file
+      if (is.null(input$seqFile)) return() # TODO: post error message
+      rv$upload <- createNewUpload(input$seqFile, seqType)
+    }
     displayUpload()
 
     output$page <- renderText("upload")

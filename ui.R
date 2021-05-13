@@ -14,10 +14,12 @@ ui <- fluidPage(
 
   # Home page
   conditionalPanel("output.page == 'home'",
-    HTML("<p>Upload a file of protein or nucleotide sequences and have them annotated using <a href='https://legumeinfo.org' target='_blank'>LIS</a> legume resources.</p>"),
+    HTML("<p>Annotate protein or nucleotide sequences using <a href='https://legumeinfo.org' target='_blank'>LIS</a> legume resources.</p>"),
     p("Because this service involves several computationally intensive searches (see pipeline description below), results can take from several minutes to several hours, depending on the size of your query. Thanks for your patience."),
-    p("Upload your protein or nucleotide FASTA file (max. 100 kbp)"),
-    fileInput("browse", label = NULL),
+    p("Upload your protein or nucleotide FASTA sequence(s) (max. 100 kbp)"),
+    radioButtons("seqSource", label = NULL, choices = c("From text", "From file")),
+    conditionalPanel("input.seqSource == 'From text'", textAreaInput("seqText", label = "Paste FASTA sequence(s) here:", width = "800px", height = "400px")),
+    conditionalPanel("input.seqSource == 'From file'", fileInput("seqFile", label = NULL)),
     radioButtons("seqType", label = "Type of sequence", choices = c("nucleotide", "protein")),
     actionButton("upload", "Upload File"),
     p(""),

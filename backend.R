@@ -4,6 +4,12 @@ library(stringi)
 library(yaml)
 # --------------------------------------------------------------
 
+# Global settings
+# setwd("/srv/shiny-server/Funnotate") # already there
+settings <- read_yaml("settings.yml")
+
+# --------------------------------------------------------------
+
 # For scrubbing upload files
 scrubber <- list()
 scrubber$n <- list(
@@ -31,8 +37,31 @@ countBadChars <- function(ss0, ss1) {
 #   ns <- nchar(ss)
 # }
 
+# Returns the file path relative to "www/"
+funnotize <- function(filename) {
+  gsub("www/", "", filename)
+}
+
+# --------------------------------------------------------------
+
+# Current and elapsed time as string
 currentTimeString <- function() {
   as.character(Sys.time())
+}
+
+elapsedTimeString <- function(t0, t1) {
+  elapsedTime <- as.POSIXct(t1) - as.POSIXct(t0)
+  ss <- as.integer(round(as.double(elapsedTime, units = "secs")))
+  hh <- ss %/% 3600
+  ss <- ss - hh*3600
+  mm <- ss %/% 60
+  ss <- ss - mm*60
+  if (hh > 0) {
+    ets <- sprintf("%d:%02d:%02d", hh, mm, ss)
+  } else {
+    ets <- sprintf("%d:%02d", mm, ss)
+  }
+  ets
 }
 
 # --------------------------------------------------------------
@@ -121,7 +150,7 @@ createNewUpload <- function(fiData, seqType) {
 
 # --------------------------------------------------------------
 
-createNewJob <- function(upload) {
+createNewJob <- function(upload, useInterpro) {
   # Generate an as-yet-unused job id
   jobsDir <- "www/job"
   dd <- list.dirs(jobsDir)
@@ -144,17 +173,23 @@ createNewJob <- function(upload) {
     numSequences = upload$numSequences,
     totalSequenceLength = upload$totalSequenceLength,
     totalBadChars = upload$totalBadChars,
-    useInterpro = NA,
+    useInterpro = useInterpro,
+    estscanStatus = ifelse(upload$sequenceType == "nucleotide", "ESTScan: Queued", ""),
+    blastStatus = sprintf("BLAST %s: Queued", basename(settings$blast$dbs)),
+    ahrdStatus = "AHRD: Queued",
+    iprStatus = ifelse(useInterpro, "InterPro: Queued", ""),
+    hmmStatus = "HMMer: Queued",
+    summaryStatus = "Postprocessing: Queued",
     jobFile = sprintf("%s/job_%s", jobDir, jobId), # metadata for existing jobs
     inputFile = upload$inputFileScrubbed,
-    blastFiles = c(),
+    blastFiles = sprintf("%s/blast_%s_%d", jobDir, jobId, 1:length(settings$blast$dbs)),
     ahrdFile = sprintf("%s/ahrd_%s.txt", jobDir, jobId),
     iprFile = sprintf("%s/ipr_%s.txt", jobDir, jobId),
     hmmFile = sprintf("%s/hmm_%s.tbl", jobDir, jobId),
     summaryFile = sprintf("%s/summary_%s.txt", jobDir, jobId),
     status = "new",
     messages = c(),
-    startTime = NA,
+    startTime = currentTimeString(),
     endTime = NA
   )
   job
@@ -162,6 +197,12 @@ createNewJob <- function(upload) {
 
 isActive <- function(job) {
   job$status != "failure"
+}
+isDone <- function(job) {
+  job$status %in% c("failure", "success")
+}
+isRunning <- function(job) {
+  is.null(job) || !isDone(job)
 }
 
 failJob <- function(job) {
@@ -172,10 +213,12 @@ failJob <- function(job) {
 
 # --------------------------------------------------------------
 
-runESTScan <- function(job, settings, quiet) {
+runESTScan <- function(job, quiet) {
   inputFileTrans <- paste0(job$inputFile, ".trans")
   estscanCmd <- sprintf("%s -M %s -t %s %s", # -o /dev/null
     settings$estscan$exe, settings$estscan$matrix, inputFileTrans, job$inputFile)
+  job$estscanStatus <- "ESTScan: Running"
+  writeJob(job)
   if (quiet) {
     system(estscanCmd)
   } else {
@@ -183,47 +226,55 @@ runESTScan <- function(job, settings, quiet) {
   }
   # TODO: Clean up the header?
   if (file.exists(inputFileTrans)) {
-    #job$messages <- c(job$messages, paste("ESTSCAN: Generated", inputFileTrans))
     job$inputFile <- inputFileTrans
+    job$estscanStatus <- "ESTScan: Done"
   } else {
-    job$messages <- c(job$messages, "ESTScan: Failed, no output file")
+    job$estscanStatus <- "ESTScan: Failed, no output file"
+    job$messages <- c(job$messages, job$estscanStatus)
     job$status <- "failure"
     job$endTime <- currentTimeString()
   }
+  writeJob(job)
   job
 }
 
-runBLAST <- function(job, settings, quiet) {
+runBLAST <- function(job, quiet) {
   for (i in 1:length(settings$blast$dbs)) {
-    blastFile.i <- sprintf("%s/blast_%s_%d", job$dir, job$id, i)
-    job$blastFiles <- c(job$blastFiles, blastFile.i)
+    blastDb.i <- basename(settings$blast$dbs[i])
+    job$blastStatus[i] <- sprintf("BLAST %s: Running", blastDb.i)
+    writeJob(job)
     #blastCmd.i <- sprintf("%s -db %s -query %s -out %s -outfmt 6 -num_threads %d",
-    #  settings$blast$exe, settings$blast$dbs[i], inputFile, blastFile.i, settings$num_threads)
+    #  settings$blast$exe, settings$blast$dbs[i], inputFile, job$blastFiles[i], settings$num_threads)
     blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -m 8",
     # blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -e 0.0001 -v 200 -b 200 -m 0 -a 4",
-      settings$blast$exe, settings$blast$dbs[i], job$inputFile, blastFile.i)
+      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i])
     if (quiet) {
       system(blastCmd.i)
     } else {
       job$messages <- c(job$messages, system(blastCmd.i, intern = TRUE))
     }
-    if (file.exists(blastFile.i) && file.info(blastFile.i)$size > 0) {
-      #job$messages <- c(job$messages, paste("BLAST: Generated", blastFile.i))
+    if (file.exists(job$blastFiles[i]) && file.info(job$blastFiles[i])$size > 0) {
+      job$blastStatus[i] <- sprintf("BLAST %s: Done", blastDb.i)
+      #job$messages <- c(job$messages, paste("BLAST: Generated", job$blastFiles[i]))
     } else {
-      job$messages <- c(job$messages, paste("BLAST: Failed, no output file", i))
+      job$blastStatus[i] <- sprintf("BLAST %s: Failed, no output file %d", blastDb.i, i)
+      job$messages <- c(job$messages, job$blastStatus[i])
       job$status <- "failure"
       job$endTime <- currentTimeString()
     }
+    writeJob(job)
   }
   job
 }
 
-runAHRD <- function(job, settings, quiet) {
+runAHRD <- function(job, quiet) {
   ahrdTmpYmlFile <- NA # for cleanup
   # Read YAML file and update certain parameters
   ahrdYml <- read_yaml(settings$ahrd$yml)
   ahrdYml$proteins_fasta <- job$inputFile
   ahrdYml$output <- job$ahrdFile
+  job$ahrdStatus <- "AHRD: Running"
+  writeJob(job)
   b <- 1
   for (bdb in ahrdYml$blast_dbs) {
     # AHRD expects the databases in FASTA (text) format
@@ -246,19 +297,24 @@ runAHRD <- function(job, settings, quiet) {
   if (!is.na(ahrdTmpYmlFile) && file.exists(ahrdTmpYmlFile)) system(paste("rm", ahrdTmpYmlFile))
   # done
   if (file.exists(job$ahrdFile)) {
+    job$ahrdStatus <- "AHRD: Done"
     #job$messages <- c(job$messages, paste("AHRD: Generated", job$ahrdFile))
   } else {
-    job$messages <- c(job$messages, "AHRD: Failed, no output file")
+    job$ahrdStatus <- "AHRD: Failed, no output file"
+    job$messages <- c(job$messages, job$ahrdStatus)
     job$status <- "failure"
     job$endTime <- currentTimeString()
   }
+  writeJob(job)
   job
 }
 
-runInterPro <- function(job, settings, quiet) {
+runInterPro <- function(job, quiet) {
   iprXml <- sprintf("temp/ipr_%s.xml", job$id)
   iprCmdXml <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s -i %s -o %s -f XML %s",
     settings$interpro$exe, job$inputFile, iprXml, settings$interpro$params)
+  job$iprStatus <- "InterPro: Running"
+  writeJob(job)
   if (quiet) {
     system(iprCmdXml)
   } else {
@@ -277,63 +333,68 @@ runInterPro <- function(job, settings, quiet) {
     if (!is.na(iprXml) && file.exists(iprXml)) system(paste("rm", iprXml))
     # done
     if (file.exists(job$iprFile)) {
+      job$iprStatus <- "InterPro: Done"
       #job$messages <- c(job$messages, paste("InterPro: Generated", job$iprFile))
     } else {
-      job$messages <- c(job$messages, "InterPro: Failed to convert XML to raw (txt)")
+      job$iprStatus <- "InterPro: Failed to convert XML to raw (txt)"
+      job$messages <- c(job$messages, job$iprStatus)
       job$status <- "failure"
       job$endTime <- currentTimeString()
     }
   } else {
-    job$messages <- c(job$messages, "InterPro: Failed, no XML output")
+    job$iprStatus <- "InterPro: Failed, no XML output"
+    job$messages <- c(job$messages, job$iprStatus)
     job$status <- "failure"
     job$endTime <- currentTimeString()
   }
+  writeJob(job)
   job
 }
 
-runHMMer <- function(job, settings, quiet) {
+runHMMer <- function(job, quiet) {
   hmmCmd <- sprintf("%s --cpu %d --tblout %s %s %s",
     settings$hmmer$exe, settings$num_threads, job$hmmFile, settings$hmmer$db, job$inputFile)
+  job$hmmStatus <- "HMMer: Running"
+  writeJob(job)
   if (quiet) {
     system(hmmCmd)
   } else {
     job$messages <- c(job$messages, system(hmmCmd, intern = TRUE))
   }
   if (file.exists(job$hmmFile)) {
+    job$hmmStatus <- "HMMer: Done"
     #job$messages <- c(job$messages, paste("HMMer: Generated", job$hmmFile))
   } else {
-    job$messages <- c(job$messages, "HMMer: Failed, no output")
+    job$hmmStatus <- "HMMer: Failed, no output"
+    job$messages <- c(job$messages, job$hmmStatus)
     job$status <- "failure"
     job$endTime <- currentTimeString()
   }
+  writeJob(job)
   job
 }
 
 runJob <- function(job, quiet = TRUE) {
-  # setwd("/srv/shiny-server/Funnotate") # already there
-  settings <- read_yaml("settings.yml")
-
   if (!dir.exists(job$dir)) dir.create(job$dir)
-  job$startTime <- currentTimeString()
 
   # ESTScan
   if (job$sequenceType == "nucleotide") {
-    if (isActive(job)) job <- runESTScan(job, settings, quiet)
+    if (isActive(job)) job <- runESTScan(job, quiet)
   }
 
   # BLAST
-  if (isActive(job)) job <- runBLAST(job, settings, quiet)
+  if (isActive(job)) job <- runBLAST(job, quiet)
 
   # AHRD
-  if (isActive(job)) job <- runAHRD(job, settings, quiet)
+  if (isActive(job)) job <- runAHRD(job, quiet)
 
   # InterPro
   if (job$useInterpro) {
-    if (isActive(job)) job <- runInterPro(job, settings, quiet)
+    if (isActive(job)) job <- runInterPro(job, quiet)
   }
 
   # HMMer
-  if (isActive(job)) job <- runHMMer(job, settings, quiet)
+  if (isActive(job)) job <- runHMMer(job, quiet)
 
   # Job completed!
   if (isActive(job)) {
@@ -341,7 +402,7 @@ runJob <- function(job, quiet = TRUE) {
     job$endTime <- currentTimeString()
     #job$messages <- c(job$messages, "Done.")
   }
-  write_yaml(job, job$jobFile)
+  writeJob(job)
   job
 }
 
@@ -363,8 +424,18 @@ readJob <- function(jobId) {
   job
 }
 
+# Write an existing job
+writeJob <- function(job) {
+  write_yaml(job, job$jobFile)
+}
+
+# --------------------------------------------------------------
+
 # Read output files and create summary table
 createSummaryTable <- function(job) {
+  job$summaryStatus <- "Postprocessing: Running"
+  writeJob(job)
+
   # AHRD
   df.ahrd <- read.table(job$ahrdFile, skip = 2, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
   df.summary <- df.summary.txt <- df.ahrd[, 1:4]
@@ -453,6 +524,9 @@ createSummaryTable <- function(job) {
   # Sort by sequence name
   df.summary <- df.summary[order(df.summary[, 1]), ]
   df.summary.txt <- df.summary.txt[order(df.summary.txt[, 1]), ]
+
+  job$summaryStatus <- "Postprocessing: Done"
+  writeJob(job)
 
   list(simpleTable = df.simpleTable, columnNames = colnames.summary,
     summaryTable = df.summary, summaryTableOut = df.summary.txt)

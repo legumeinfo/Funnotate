@@ -45,8 +45,7 @@ server <- function(input, output, session) {
   outputOptions(output, "jobStatus", suspendWhenHidden = FALSE)
 
   clearQueryString <- function() {
-    # TODO: replace with baseURL from settings
-    updateQueryString("http://dev.lis.ncgr.org:50003/en/shiny/Funnotate/")
+    updateQueryString("")
   }
 
   # TODO: use updateQueryString(q, mode = "push") ?
@@ -73,11 +72,11 @@ server <- function(input, output, session) {
       seqSize <- nchar(seqText)
       if (seqSize == 0) return() # TODO: post error message
       # save to temporary file
-      tempSeqFile <- "temp/pasted-text.fasta"
+      tempSeqFile <- tempfile(pattern="pasted-text", fileext="fasta")
       write(seqText, tempSeqFile)
       seq <- list(name = "Pasted text", size = seqSize, datapath = tempSeqFile)
       upload <- createNewUpload(seq, seqType)
-      system(paste("rm", tempSeqFile))
+      unlink(tempSeqFile)
     } else {
       # read sequence(s) from file
       if (is.null(input$seqFile)) return() # TODO: post error message

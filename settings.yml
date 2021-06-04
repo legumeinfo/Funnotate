@@ -8,23 +8,23 @@ num_threads: 5
 
 # ESTScan
 estscan:
-  exe: /home/svengato/estscan-3.0.3/estscan
+  exe: /usr/bin/estscan
   matrix: /home/svengato/smat/medicago.smat
 
 # BLAST: expects the databases in indexed format (.phr, .pin, .psq)
 blast:
-  exe: /erdos/adf/e00/adf/blast-2.2.23/bin/blastall
+  # exe: /erdos/adf/e00/adf/blast-2.2.23/bin/blastall
   # To use blastp [...] instead of blastall -p blastp [...],
-  # exe: /usr/bin/blastp
+  exe: /usr/bin/blastp
   dbs:
-    - /erdos/adf/e01/lis/AHRD/blast/TAIR10_pep_20101209
-    - /erdos/adf/e01/lis/AHRD/blast/Glyma.refseq_protein.fasta
-    - /erdos/adf/e01/lis/AHRD/blast/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
+    - /srv/shiny-server/blastdb/TAIR10_pep_20101214
+    - /srv/shiny-server/blastdb/GCF_000004515.5_Glycine_max_v2.1_protein.faa
+    - /srv/shiny-server/blastdb/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
 
 # AHRD
 ahrd:
   java: /usr/bin/java
-  jar: /home/svengato/AHRD/ahrd.jar
+  jar: /srv/shiny-server/ahrd.jar
   # Possible alternatives?
   # java: /erdos/adf/sw/jdk1.7.0/bin/java
   # jar: /erdos/adf/e01/lis/AHRD/2.0-stable/bin/ahrd.jar
@@ -39,8 +39,8 @@ interpro:
 
 # HMMer
 hmmer:
-  exe: /erdos/adf/sw/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmscan
-  db: /erdos/svengato/hmmdb/legfed_v1_0/legfed_v1_0.hmm
+  exe: /usr/bin/hmmscan
+  db: /srv/shiny-server/legume.genefam.fam1.M65K.hmm
   # Unused:
   # params: [...]
   # target_families: [...]/07_family_fasta

@@ -9,7 +9,7 @@ blast_dbs:
     description_score_bit_score_weight: 2.717061
     file:
     fasta_header_regex: '^>(?<accession>\S+)\s+(?<description>[^\[]+)\[.*?$'
-    database: /erdos/svengato/blast-dbs/Glyma.refseq_protein.fasta
+    database: /srv/shiny-server/blastdb/GCF_000004515.5_Glycine_max_v2.1_protein.faa
     blacklist: ahrd/soy_descline_blacklist.txt
     filter: ahrd/empty.txt
     token_blacklist: ahrd/blacklist_token.txt
@@ -25,7 +25,7 @@ blast_dbs:
     description_score_bit_score_weight: 2.717061
     file:
     fasta_header_regex: '^>(?<accession>\S+)\s*\|[^\|]+\|\s*(?<description>[^\|]+)\s*\|.*$'
-    database: /erdos/svengato/blast-dbs/TAIR10_pep_20101209
+    database: /srv/shiny-server/blastdb/TAIR10_pep_20101214
     blacklist: ahrd/empty.txt
     filter: ahrd/empty.txt
     token_blacklist: ahrd/blacklist_token.txt
@@ -40,7 +40,7 @@ blast_dbs:
     description_score_bit_score_weight: 2.917405
     file:
     fasta_header_regex: '^>(?<accession>\S+)\s*\|\s*(?<description>[^\|]+)\s*\|.*$'
-    database: /erdos/svengato/blast-dbs/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
+    database: /srv/shiny-server/blastdb/Mt4.0v2_GenesProteinSeq_20140818_1100.fasta
     blacklist: ahrd/med_descline_blacklist.txt
     filter: ahrd/empty.txt
     token_blacklist: ahrd/blacklist_token.txt

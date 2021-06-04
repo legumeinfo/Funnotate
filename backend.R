@@ -243,11 +243,11 @@ runBLAST <- function(job, quiet) {
     blastDb.i <- basename(settings$blast$dbs[i])
     job$blastStatus[i] <- sprintf("BLAST %s: Running", blastDb.i)
     writeJob(job)
-    #blastCmd.i <- sprintf("%s -db %s -query %s -out %s -outfmt 6 -num_threads %d",
-    #  settings$blast$exe, settings$blast$dbs[i], inputFile, job$blastFiles[i], settings$num_threads)
-    blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -m 8",
+    blastCmd.i <- sprintf("%s -db %s -query %s -out %s -outfmt 6 -num_threads %d",
+      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i], settings$num_threads)
+    #blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -m 8",
     # blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -e 0.0001 -v 200 -b 200 -m 0 -a 4",
-      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i])
+    # settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i])
     if (quiet) {
       system(blastCmd.i)
     } else {

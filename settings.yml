@@ -19,7 +19,7 @@ blast:
   dbs:
     - /srv/shiny-server/blastdb/TAIR10_pep_20101214
     - /srv/shiny-server/blastdb/GCF_000004515.5_Glycine_max_v2.1_protein.faa
-    - /srv/shiny-server/blastdb/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
+    - /srv/shiny-server/blastdb/Mt4.0v2_GenesProteinSeq_20140818_1100.fasta
 
 # AHRD
 ahrd:

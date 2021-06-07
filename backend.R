@@ -153,6 +153,7 @@ createNewUpload <- function(fiData, seqType) {
 createNewJob <- function(upload, useInterpro) {
   # Generate an as-yet-unused job id
   jobsDir <- "www/job"
+  if (!dir.exists(jobsDir)) dir.create(jobsDir)
   dd <- list.dirs(jobsDir)
   while (TRUE) {
     # Why is job id like "A1B2C"? Andrew says it is to guard against "obscenities".

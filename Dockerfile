@@ -38,7 +38,13 @@ COPY --from=ahrd /usr/src/ahrd.jar .
 
 RUN Rscript -e 'download.file(url="https://legumeinfo.org/data/v2/LEGUMES/Fabaceae/genefamilies/legume.genefam.fam1.M65K/legume.genefam.fam1.M65K.hmm.tar.gz", destfile="legume.genefam.fam1.M65K.hmm.tar.gz")' \
   && tar -xzf legume.genefam.fam1.M65K.hmm.tar.gz \
-  && rm legume.genefam.fam1.M65K.hmm.tar.gz
+  && rm legume.genefam.fam1.M65K.hmm.tar.gz \
+  && find legume.genefam.fam1.M65K.hmm/ -type f -exec cat {} + > legume.genefam.fam1.M65K \
+  && rm -rf legume.genefam.fam1.M65K.hmm \
+  && mv legume.genefam.fam1.M65K legume.genefam.fam1.M65K.hmm \
+  && hmmpress legume.genefam.fam1.M65K.hmm \
+  && rm legume.genefam.fam1.M65K.hmm \
+  && touch legume.genefam.fam1.M65K.hmm
 
 RUN mkdir blastdb
 RUN Rscript -e 'download.file(url="https://www.arabidopsis.org/download_files/Proteins/TAIR10_protein_lists/TAIR10_pep_20101214", destfile="blastdb/TAIR10_pep_20101214")'

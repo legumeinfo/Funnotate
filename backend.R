@@ -286,7 +286,7 @@ runAHRD <- function(job, quiet) {
     b <- b + 1
   }
   # write the modified YAML to a temporary file
-  ahrdTmpYmlFile <- sprintf("temp/ahrd_%s.yml", job$id)
+  ahrdTmpYmlFile <- tempfile(pattern="ahrd_", fileext=".yml")
   write_yaml(ahrdYml, ahrdTmpYmlFile)
   ahrdCmd <- sprintf("%s -Xmx2g -jar %s %s", settings$ahrd$java, settings$ahrd$jar, ahrdTmpYmlFile)
   if (quiet) {
@@ -311,7 +311,7 @@ runAHRD <- function(job, quiet) {
 }
 
 runInterPro <- function(job, quiet) {
-  iprXml <- sprintf("temp/ipr_%s.xml", job$id)
+  iprXml <- tempfile(pattern="ipr_", fileext=".xml")
   iprCmdXml <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s -i %s -o %s -f XML %s",
     settings$interpro$exe, job$inputFile, iprXml, settings$interpro$params)
   job$iprStatus <- "InterPro: Running"

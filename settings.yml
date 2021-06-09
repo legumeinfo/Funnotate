@@ -3,6 +3,8 @@
 ############
 
 # General settings
+
+# override with environment variable FUNNOTATE_NUM_THREADS
 num_threads: 5
 # error_log: temp/funnotate.err
 

@@ -7,6 +7,7 @@ library(yaml)
 # Global settings
 # setwd("/srv/shiny-server/Funnotate") # already there
 settings <- read_yaml("settings.yml")
+num_threads <- as.integer(Sys.getenv("FUNNOTATE_NUM_THREADS", settings$num_threads))
 
 # --------------------------------------------------------------
 
@@ -245,7 +246,7 @@ runBLAST <- function(job, quiet) {
     job$blastStatus[i] <- sprintf("BLAST %s: Running", blastDb.i)
     writeJob(job)
     blastCmd.i <- sprintf("%s -db %s -query %s -out %s -outfmt 6 -num_threads %d",
-      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i], settings$num_threads)
+      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i], num_threads)
     #blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -m 8",
     # blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -e 0.0001 -v 200 -b 200 -m 0 -a 4",
     # settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i])
@@ -312,8 +313,8 @@ runAHRD <- function(job, quiet) {
 
 runInterPro <- function(job, quiet) {
   iprXml <- tempfile(pattern="ipr_", fileext=".xml")
-  iprCmdXml <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s -i %s -o %s -f XML %s",
-    settings$interpro$exe, job$inputFile, iprXml, settings$interpro$params)
+  iprCmdXml <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s --cpu %d -i %s -o %s -f XML %s",
+    settings$interpro$exe, num_threads, job$inputFile, iprXml, settings$interpro$params)
   job$iprStatus <- "InterPro: Running"
   writeJob(job)
   if (quiet) {
@@ -354,7 +355,7 @@ runInterPro <- function(job, quiet) {
 
 runHMMer <- function(job, quiet) {
   hmmCmd <- sprintf("%s --cpu %d --tblout %s %s %s",
-    settings$hmmer$exe, settings$num_threads, job$hmmFile, settings$hmmer$db, job$inputFile)
+    settings$hmmer$exe, num_threads, job$hmmFile, settings$hmmer$db, job$inputFile)
   job$hmmStatus <- "HMMer: Running"
   writeJob(job)
   if (quiet) {

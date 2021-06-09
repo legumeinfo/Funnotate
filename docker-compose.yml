@@ -1,5 +1,7 @@
 services:
   shiny:
     build: .
+    environment:
+      FUNNOTATE_NUM_THREADS: 2
     ports:
       - "3838:3838"

@@ -329,14 +329,12 @@ runAHRD <- function(job) {
 
 runInterPro <- function(job) {
   iprXml <- sprintf("temp/ipr_%s.xml", job$id)
-  iprCmdXml <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s -i %s -o %s -f XML %s",
-    settings$interpro$exe, job$inputFile, iprXml, settings$interpro$params)
+  iprCmdXml <- sprintf("%s -i %s -o %s -f XML %s", settings$interpro$exe, job$inputFile, iprXml, settings$interpro$params)
   job$iprStatus <- "InterPro: Running"
   writeJob(job)
   system(iprCmdXml)
   if (file.exists(iprXml)) {
-    iprCmdRaw <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s -i %s -mode convert -f RAW -o %s",
-      settings$interpro$exe, iprXml, job$iprFile)
+    iprCmdRaw <- sprintf("%s -i %s -mode convert -f RAW -o %s", settings$interpro$exe, iprXml, job$iprFile)
     system(iprCmdRaw)
     # clean up temporary file
     if (!is.na(iprXml) && file.exists(iprXml)) system(paste("rm", iprXml))

@@ -246,7 +246,7 @@ runBLAST <- function(job, quiet) {
     job$blastStatus[i] <- sprintf("BLAST %s: Running", blastDb.i)
     writeJob(job)
     blastCmd.i <- sprintf("%s -db %s -query %s -out %s -outfmt 6 -num_threads %d",
-      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i], num_threads)
+      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i], settings$num_threads)
     #blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -m 8",
     # blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -e 0.0001 -v 200 -b 200 -m 0 -a 4",
     # settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i])
@@ -313,7 +313,7 @@ runAHRD <- function(job, quiet) {
 
 runInterPro <- function(job, quiet) {
   iprXml <- tempfile(pattern="ipr_", fileext=".xml")
-  iprCmdXml <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s --cpu %d -i %s -o %s -f XML %s",
+  iprCmdXml <- sprintf("%s --cpu %d -i %s -o %s -f XML %s",
     settings$interpro$exe, num_threads, job$inputFile, iprXml, settings$interpro$params)
   job$iprStatus <- "InterPro: Running"
   writeJob(job)
@@ -324,7 +324,7 @@ runInterPro <- function(job, quiet) {
   }
   if (file.exists(iprXml)) {
     #job$messages <- c(job$messages, paste("InterPro: Generated", iprXml))
-    iprCmdRaw <- sprintf("export _JAVA_OPTIONS=-Duser.home=tmp; %s -i %s -mode convert -f RAW -o %s",
+    iprCmdRaw <- sprintf("%s -i %s -mode convert -f RAW -o %s",
       settings$interpro$exe, iprXml, job$iprFile)
     if (quiet) {
       system(iprCmdRaw)

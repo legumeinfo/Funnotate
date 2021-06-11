@@ -1,4 +1,4 @@
-FROM ubuntu:21.04 AS ahrd
+FROM ubuntu:20.04 AS ahrd
 
 RUN apt update && apt install -y --no-install-recommends \
   ant \
@@ -15,7 +15,7 @@ RUN tar -xzf v${AHRD_VERSION}.tar.gz \
   && cd .. \
   && rm -rf AHRD-${AHRD_VERSION}
 
-FROM ubuntu:21.04
+FROM ubuntu:20.04
 
 RUN apt update \
   && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \

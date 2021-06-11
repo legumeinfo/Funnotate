@@ -10,14 +10,14 @@ num_threads: 5
 
 # ESTScan
 estscan:
-  exe: /usr/bin/estscan
+  exe: estscan
   matrix: /home/svengato/smat/medicago.smat
 
 # BLAST: expects the databases in indexed format (.phr, .pin, .psq)
 blast:
   # exe: /erdos/adf/e00/adf/blast-2.2.23/bin/blastall
   # To use blastp [...] instead of blastall -p blastp [...],
-  exe: /usr/bin/blastp
+  exe: blastp
   dbs:
     - /srv/shiny-server/blastdb/TAIR10_pep_20101214
     - /srv/shiny-server/blastdb/GCF_000004515.5_Glycine_max_v2.1_protein.faa
@@ -25,23 +25,23 @@ blast:
 
 # AHRD
 ahrd:
-  java: /usr/bin/java
+  java: java
   jar: /srv/shiny-server/ahrd.jar
   # Possible alternatives?
   # java: /erdos/adf/sw/jdk1.7.0/bin/java
   # jar: /erdos/adf/e01/lis/AHRD/2.0-stable/bin/ahrd.jar
-  yml: ahrd/ahrd_nosp.yml
+  yml: /srv/shiny-server/ahrd/ahrd_nosp.yml
 
 # InterPro
 interpro:
-  exe: /erdos/adf/sw/interproscan-5.3-46.0/interproscan-java1.7.sh
+  exe: interproscan.sh
   # Possible alternative:
   # exe <- /erdos/adf/sw/interproscan-5.3-46.0/interproscan.sh
   params: -appl TIGRFAM,ProDom,SMART,SUPERFAMILY,PANTHER,Gene3D,PIRSF,Pfam,Coils
 
 # HMMer
 hmmer:
-  exe: /usr/bin/hmmscan
+  exe: hmmscan
   db: /srv/shiny-server/legume.genefam.fam1.M65K.hmm
   # Unused:
   # params: [...]

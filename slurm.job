@@ -1,0 +1,21 @@
+#!/bin/sh
+# Example minimal Slurm job script to run Funnotate in a Singularity container
+#SBATCH --cpus-per-task=4
+#SBATCH --time=1:00:00
+
+export SINGULARITYENV_PREPEND_PATH=/path/to/interproscan/
+
+mkdir -p www/upload www/job temp
+
+singularity exec \
+  --cleanenv \
+  --containall \
+  --env FUNNOTATE_NUM_THREADS=${SLURM_JOB_CPUS_PER_NODE} \
+  --bind ${TMPDIR:-/tmp}:/tmp \
+  --bind ${PWD}/www/upload:/srv/shiny-server/www/upload \
+  --bind ${PWD}/www/job:/srv/shiny-server/www/job \
+  --bind ${PWD}/temp:/srv/shiny-server/temp \
+  --bind ${SINGULARITYENV_PREPEND_PATH} \
+  --pwd /srv/shiny-server \
+  funnotate.sif \
+  Rscript -e "library(shiny); runApp(host='0.0.0.0', port=3838)"

@@ -55,19 +55,21 @@ ui <- fluidPage(
   ),
 
   # Job page
-  # TODO: show intermediate results and error messages
   conditionalPanel("output.page == 'job'",
     htmlOutput("job2"),
     textOutput("uploadFile"),
     p(""),
-    conditionalPanel("output.jobStatus != 'running'",
-      tableOutput("simpleTable"),
-      htmlOutput("estscan"),
-      htmlOutput("blast"),
-      htmlOutput("interpro"),
-      htmlOutput("hmm"),
-      htmlOutput("ahrd"),
-      p(""),
+    conditionalPanel("output.jobStatus == 'success'",
+      tableOutput("simpleTable")
+    ),
+    htmlOutput("estscan"),
+    htmlOutput("blast"),
+    htmlOutput("ahrd"),
+    htmlOutput("interpro"),
+    htmlOutput("hmm"),
+    htmlOutput("summary"),
+    p(""),
+    conditionalPanel("output.jobStatus == 'success'",
       htmlOutput("summaryLabel"),
       DTOutput("summaryTable"),
       HTML(paste("<br><sup>1</sup>GF Score = full-sequence E-value from hmmscan",
@@ -91,7 +93,6 @@ ui <- fluidPage(
           "<a href='https://github.com/groupschoof/AHRD/blob/master/README.textile' target='_blank'>AHRD Documentation</a>."))
       )
     ),
-    htmlOutput("jobMessages"),
     textOutput("jobDuration"),
     conditionalPanel("output.jobStatus != 'running'",
       actionLink("jhome", "Start Over")

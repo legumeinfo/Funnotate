@@ -95,29 +95,32 @@ server <- function(input, output, session) {
     output$uploadFile <- renderText("")
     output$estscan <- renderUI("")
     output$blast <- renderUI("")
+    output$ahrd <- renderUI("")
     output$interpro <- renderUI("")
     output$hmm <- renderUI("")
-    output$ahrd <- renderUI("")
+    output$summary <- renderUI("")
     output$jobDuration <- renderText("")
-    output$jobMessages <- renderUI("")
   }
 
-  getJobMessages <- function(job) {
-    if (is.null(job)) {
-      msgs <- c("The annotation job is queued and will begin shortly.",
-        "The page will automatically refresh.")
-      return(paste(msgs, collapse = "<br>"))
-    } else if (!isDone(job)) {
-      msgs <- c("Job status:", job$estStatus, job$blastStatus,
-        job$ahrdStatus, job$iprStatus, job$hmmStatus, job$summaryStatus)
-      msgs <- msgs[nchar(msgs) > 0]
-      return(paste(msgs, collapse = "<br>"))
-    }
-    paste(job$messages, collapse = "<br>")
+  statusDone <- function(taskStatus) {
+    grepl("Done", taskStatus)
+  }
+  statusFailed <- function(taskStatus) {
+    grepl("Failed", taskStatus)
+  }
+  # Color to display failed task, depends on whether job is salvageable
+  statusColor <- function(jobStatus) {
+    ifelse(jobStatus == "failure", "red", "orange")
   }
 
   displayJob <- function(job) {
-    output$jobStatus <- renderText(ifelse(isRunning(job), "running", "done"))
+    if (job$status == "success") {
+      output$jobStatus <- renderText("success")
+    } else if (isRunning(job)) {
+      output$jobStatus <- renderText("running")
+    } else {
+      output$jobStatus <- renderText("failed")
+    }
     clearJobPage()
 
     output$job2 <- renderUI(h4(paste("Annotation Job", job$id)))
@@ -127,42 +130,99 @@ server <- function(input, output, session) {
 
     # output$simpleTable populated below
     if (job$sequenceType == "nucleotide") {
-      output$estscan <- renderUI(HTML(
-        sprintf("<a href='%s' target='_blank'>ESTScan output</a>", funnotize(job$inputFile))
-      ))
-    }
-    output$blast <- renderUI(HTML(
-      paste("BLAST output files:",
-        "<ul>",
-        paste(sprintf("<li><a href='%s' target='_blank'>%s</a>",
-          funnotize(job$blastFiles), basename(settings$blast$dbs)), collapse = " "),
-        "</ul>"
-      )
-    ))
-    if (job$useInterpro) {
-      output$interpro <- renderUI(HTML(sprintf("<a href='%s' target='_blank'>InterPro output</a> (.txt file, RAW format)", funnotize(job$iprFile))))
-    }
-    output$hmm <- renderUI(HTML(sprintf("<a href='%s' target='_blank'>HMM output</a> (.tbl file, tabular)", funnotize(job$hmmFile))))
-    output$ahrd <- renderUI(HTML(sprintf("<a href='%s' target='_blank'>AHRD output</a> (.txt file, tabular)", funnotize(job$ahrdFile))))
-
-    # Summary table
-    if (job$status == "success") {
-      summary <- createSummaryTable(job) # list of simpleTable, columnNames, summaryTable, summaryTableOut
-      output$simpleTable <- renderTable(summary$simpleTable, colnames = FALSE)
-      output$summaryLabel <- renderUI(HTML(sprintf("<b>Summary Table (<a href='%s' target='_blank'>download</a>)", funnotize(job$summaryFile))))
-      output$summaryTable <- renderDT(summary$summaryTable, rownames = FALSE,
-        colnames = summary$columnNames, escape = FALSE, options = list(pageLength = 10))
-      if (!file.exists(job$summaryFile)) {
-        write.table(summary$summaryTableOut, job$summaryFile, sep = "\t", quote = FALSE,
-          row.names = FALSE, col.names = gsub("<sup>\\d+</sup>", "", summary$columnNames))
-      }
+      output$estscan <- renderUI({
+        jobNow <- readJob(job$id)
+        if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
+        if (statusDone(jobNow$estscanStatus)) {
+          estscanResult <- sprintf("<a href='%s' target='_blank'>ESTScan output</a>", funnotize(jobNow$inputFile))
+        } else if (statusFailed(jobNow$estscanStatus)) {
+          estscanResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$estscanStatus)
+        } else {
+          estscanResult <- jobNow$estscanStatus
+        }
+        HTML(estscanResult)
+      })
     }
 
-    # Job status (if running) or messages (if success/failure)
-    output$jobMessages <- renderUI({
+    output$blast <- renderUI({
       jobNow <- readJob(job$id)
       if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
-      HTML(getJobMessages(jobNow))
+      blastResults <- sapply(1:length(settings$blast$dbs), function(i) {
+        if (statusDone(jobNow$blastStatus[i])) {
+          result <- sprintf("<li><a href='%s' target='_blank'>%s</a>", funnotize(jobNow$blastFiles[i]), basename(settings$blast$dbs[i]))
+        } else if (statusFailed(jobNow$blastStatus[i])) {
+          result <- sprintf("<li><span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$blastStatus[i])
+        } else {
+          result <- sprintf("<li>%s", jobNow$blastStatus[i])
+        }
+        result
+      })
+      HTML(paste("BLAST output",
+        "<ul>",
+        paste(blastResults, collapse = " "),
+        "</ul>"
+      ))
+    })
+
+    output$ahrd <- renderUI({
+      jobNow <- readJob(job$id)
+      if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
+      if (statusDone(jobNow$ahrdStatus)) {
+        ahrdResult <- sprintf("<a href='%s' target='_blank'>AHRD output</a> (.txt file, tabular)", funnotize(jobNow$ahrdFile))
+      } else if (statusFailed(jobNow$ahrdStatus)) {
+        ahrdResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$ahrdStatus)
+      } else {
+        ahrdResult <- jobNow$ahrdStatus
+      }
+      HTML(ahrdResult)
+    })
+
+    if (job$useInterpro) {
+      output$interpro <- renderUI({
+        jobNow <- readJob(job$id)
+        if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
+        if (statusDone(jobNow$iprStatus)) {
+          iprResult <- ifelse(file.info(jobNow$iprFile)$size == 0, "No InterPro output",
+            sprintf("<a href='%s' target='_blank'>InterPro output</a> (.txt file, RAW format)", funnotize(jobNow$iprFile)))
+        } else if (statusFailed(jobNow$iprStatus)) {
+          iprResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$iprStatus)
+        } else {
+          iprResult <- jobNow$iprStatus
+        }
+        HTML(iprResult)
+      })
+    }
+
+    output$hmm <- renderUI({
+      jobNow <- readJob(job$id)
+      if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
+      if (statusDone(jobNow$hmmStatus)) {
+        hmmResult <- sprintf("<a href='%s' target='_blank'>HMM output</a> (.tbl file, tabular)", funnotize(jobNow$hmmFile))
+      } else if (statusFailed(jobNow$hmmStatus)) {
+        hmmResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$hmmStatus)
+      } else {
+        hmmResult <- jobNow$hmmStatus
+      }
+      HTML(hmmResult)
+    })
+
+    output$summary <- renderUI({
+      jobNow <- readJob(job$id)
+      if (jobNow$status == "success") {
+        # Summary table
+        summary <- createSummaryTable(jobNow) # list of simpleTable, columnNames, summaryTable, summaryTableOut
+        output$simpleTable <- renderTable(summary$simpleTable, colnames = FALSE)
+        output$summaryLabel <- renderUI(HTML(sprintf("<b>Summary Table (<a href='%s' target='_blank'>download</a>)", funnotize(jobNow$summaryFile))))
+        output$summaryTable <- renderDT(summary$summaryTable, rownames = FALSE,
+          colnames = summary$columnNames, escape = FALSE, options = list(pageLength = 10))
+        if (!file.exists(jobNow$summaryFile)) {
+          write.table(summary$summaryTableOut, jobNow$summaryFile, sep = "\t", quote = FALSE,
+            row.names = FALSE, col.names = gsub("<sup>\\d+</sup>", "", summary$columnNames))
+        }
+      } else if (!statusDone(jobNow$summaryStatus)) {
+        invalidateLater(4000) # put delay time in settings?
+        HTML(jobNow$summaryStatus)
+      }
     })
 
     # Format job duration

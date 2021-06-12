@@ -1,5 +1,7 @@
 .dockerignore
 .git
+.gitmodules
 Dockerfile
 README.md
 docker-compose.yml
+lorax

@@ -1,0 +1,3 @@
+[submodule "lorax"]
+	path = lorax
+	url = https://github.com/LegumeFederation/lorax.git

@@ -38,6 +38,23 @@ countBadChars <- function(ss0, ss1) {
 #   ns <- nchar(ss)
 # }
 
+# File exists and is not empty
+fileReallyExists <- function(filename) {
+  fileExists <- file.exists(filename)
+  result <- (fileExists && file.info(filename)$size > 0)
+  if (fileExists && !result) system(paste("rm", filename))
+  result
+}
+hmmFileReallyExists <- function(filename) {
+  fileExists <- fileReallyExists(filename)
+  if (!fileExists) return(FALSE)
+  ll <- readLines(filename)
+  ll <- ll[!startsWith(ll, "#")]
+  result <- (length(ll) > 0)
+  if (!result) system(paste("rm", filename))
+  result
+}
+
 # Returns the file path relative to "www/"
 funnotize <- function(filename) {
   gsub("www/", "", filename)
@@ -176,24 +193,31 @@ createNewJob <- function(upload, useInterpro) {
     totalSequenceLength = upload$totalSequenceLength,
     totalBadChars = upload$totalBadChars,
     useInterpro = useInterpro,
-    estscanStatus = ifelse(upload$sequenceType == "nucleotide", "ESTScan: Queued", ""),
-    blastStatus = sprintf("BLAST %s: Queued", basename(settings$blast$dbs)),
+    inputFile = upload$inputFileScrubbed,
+    jobFile = sprintf("%s/job_%s", jobDir, jobId), # metadata for existing jobs
+    blastStatus = sprintf("%s: Queued", basename(settings$blast$dbs)),
     ahrdStatus = "AHRD: Queued",
-    iprStatus = ifelse(useInterpro, "InterPro: Queued", ""),
     hmmStatus = "HMMer: Queued",
     summaryStatus = "Postprocessing: Queued",
-    jobFile = sprintf("%s/job_%s", jobDir, jobId), # metadata for existing jobs
-    inputFile = upload$inputFileScrubbed,
     blastFiles = sprintf("%s/blast_%s_%d", jobDir, jobId, 1:length(settings$blast$dbs)),
     ahrdFile = sprintf("%s/ahrd_%s.txt", jobDir, jobId),
-    iprFile = sprintf("%s/ipr_%s.txt", jobDir, jobId),
     hmmFile = sprintf("%s/hmm_%s.tbl", jobDir, jobId),
     summaryFile = sprintf("%s/summary_%s.txt", jobDir, jobId),
     status = "new",
-    messages = c(),
     startTime = currentTimeString(),
-    endTime = NA
+    endTime = ""
   )
+  # Insert optional fields in the right position
+  if (upload$sequenceType == "nucleotide") {
+    j <- which(names(job) == "jobFile")
+    job <- append(job, list(estscanStatus = "ESTScan: Queued"), j)
+  }
+  if (job$useInterpro) {
+    j <- which(names(job) == "ahrdStatus")
+    job <- append(job, list(iprStatus = "InterPro: Queued"), j)
+    j <- which(names(job) == "ahrdFile")
+    job <- append(job, list(iprFile = sprintf("%s/ipr_%s.txt", job$dir, job$id)), j)
+  }
   job
 }
 
@@ -215,24 +239,23 @@ failJob <- function(job) {
 
 # --------------------------------------------------------------
 
-runESTScan <- function(job, quiet) {
+runESTScan <- function(job) {
   inputFileTrans <- paste0(job$inputFile, ".trans")
   estscanCmd <- sprintf("%s -M %s -t %s %s", # -o /dev/null
     settings$estscan$exe, settings$estscan$matrix, inputFileTrans, job$inputFile)
   job$estscanStatus <- "ESTScan: Running"
   writeJob(job)
-  if (quiet) {
-    system(estscanCmd)
-  } else {
-    job$messages <- c(job$messages, system(estscanCmd, intern = TRUE))
-  }
-  # TODO: Clean up the header?
-  if (file.exists(inputFileTrans)) {
+  system(estscanCmd)
+  # Remove (first) semicolon after sequence name, if any
+  system(sprintf("perl -pi -e 's/;//' %s", inputFileTrans))
+  # TODO: Clean up the header (sequence name)?
+  if (fileReallyExists(inputFileTrans)) {
+    j <- which(names(job) == "inputFile") - 1
+    job <- append(job, list(originalInputFile = job$inputFile), j)
     job$inputFile <- inputFileTrans
     job$estscanStatus <- "ESTScan: Done"
   } else {
     job$estscanStatus <- "ESTScan: Failed, no output file"
-    job$messages <- c(job$messages, job$estscanStatus)
     job$status <- "failure"
     job$endTime <- currentTimeString()
   }
@@ -240,36 +263,33 @@ runESTScan <- function(job, quiet) {
   job
 }
 
-runBLAST <- function(job, quiet) {
+runBLAST <- function(job) {
   for (i in 1:length(settings$blast$dbs)) {
     blastDb.i <- basename(settings$blast$dbs[i])
-    job$blastStatus[i] <- sprintf("BLAST %s: Running", blastDb.i)
+    job$blastStatus[i] <- sprintf("%s: Running", blastDb.i)
     writeJob(job)
     blastCmd.i <- sprintf("%s -db %s -query %s -out %s -outfmt 6 -num_threads %d",
-      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i], settings$num_threads)
+      settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i], num_threads)
     #blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -m 8",
     # blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -e 0.0001 -v 200 -b 200 -m 0 -a 4",
-    # settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i])
-    if (quiet) {
-      system(blastCmd.i)
+    system(blastCmd.i)
+    if (fileReallyExists(job$blastFiles[i])) {
+      job$blastStatus[i] <- sprintf("%s: Done", blastDb.i)
     } else {
-      job$messages <- c(job$messages, system(blastCmd.i, intern = TRUE))
-    }
-    if (file.exists(job$blastFiles[i]) && file.info(job$blastFiles[i])$size > 0) {
-      job$blastStatus[i] <- sprintf("BLAST %s: Done", blastDb.i)
-      #job$messages <- c(job$messages, paste("BLAST: Generated", job$blastFiles[i]))
-    } else {
-      job$blastStatus[i] <- sprintf("BLAST %s: Failed, no output file %d", blastDb.i, i)
-      job$messages <- c(job$messages, job$blastStatus[i])
-      job$status <- "failure"
+      job$blastStatus[i] <- sprintf("%s: Failed, no output file", blastDb.i)
+      #job$status <- "failure"
       job$endTime <- currentTimeString()
     }
+    writeJob(job)
+  }
+  if (sum(file.exists(job$blastFiles)) == 0) {
+    job$status <- "failure"
     writeJob(job)
   }
   job
 }
 
-runAHRD <- function(job, quiet) {
+runAHRD <- function(job) {
   ahrdTmpYmlFile <- NA # for cleanup
   # Read YAML file and update certain parameters
   ahrdYml <- read_yaml(settings$ahrd$yml)
@@ -286,24 +306,21 @@ runAHRD <- function(job, quiet) {
     ahrdYml$blast_dbs[[b]]$file <- job$blastFiles[i]
     b <- b + 1
   }
+  # remove missing blast_dbs
+  bb <- sapply(ahrdYml$blast_dbs, function(bdb) file.exists(bdb$file))
+  ahrdYml$blast_dbs <- ahrdYml$blast_dbs[bb]
   # write the modified YAML to a temporary file
   ahrdTmpYmlFile <- tempfile(pattern="ahrd_", fileext=".yml")
   write_yaml(ahrdYml, ahrdTmpYmlFile)
   ahrdCmd <- sprintf("%s -Xmx2g -jar %s %s", settings$ahrd$java, settings$ahrd$jar, ahrdTmpYmlFile)
-  if (quiet) {
-    system(ahrdCmd)
-  } else {
-    job$messages <- c(job$messages, system(ahrdCmd, intern = TRUE))
-  }
+  system(ahrdCmd)
   # clean up temporary file
   if (!is.na(ahrdTmpYmlFile) && file.exists(ahrdTmpYmlFile)) system(paste("rm", ahrdTmpYmlFile))
   # done
-  if (file.exists(job$ahrdFile)) {
+  if (fileReallyExists(job$ahrdFile)) {
     job$ahrdStatus <- "AHRD: Done"
-    #job$messages <- c(job$messages, paste("AHRD: Generated", job$ahrdFile))
   } else {
     job$ahrdStatus <- "AHRD: Failed, no output file"
-    job$messages <- c(job$messages, job$ahrdStatus)
     job$status <- "failure"
     job$endTime <- currentTimeString()
   }
@@ -311,98 +328,77 @@ runAHRD <- function(job, quiet) {
   job
 }
 
-runInterPro <- function(job, quiet) {
-  iprXml <- tempfile(pattern="ipr_", fileext=".xml")
-  iprCmdXml <- sprintf("%s --cpu %d -i %s -o %s -f XML %s",
-    settings$interpro$exe, num_threads, job$inputFile, iprXml, settings$interpro$params)
+runInterPro <- function(job) {
+  iprXml <- sprintf("temp/ipr_%s.xml", job$id)
+  iprCmdXml <- sprintf("%s --cpu %d -i %s -o %s -f XML %s", settings$interpro$exe, num_threads, job$inputFile, iprXml, settings$interpro$params)
   job$iprStatus <- "InterPro: Running"
   writeJob(job)
-  if (quiet) {
-    system(iprCmdXml)
-  } else {
-    job$messages <- c(job$messages, system(iprCmdXml, intern = TRUE))
-  }
+  system(iprCmdXml)
   if (file.exists(iprXml)) {
-    #job$messages <- c(job$messages, paste("InterPro: Generated", iprXml))
-    iprCmdRaw <- sprintf("%s -i %s -mode convert -f RAW -o %s",
-      settings$interpro$exe, iprXml, job$iprFile)
-    if (quiet) {
-      system(iprCmdRaw)
-    } else {
-      job$messages <- c(job$messages, system(iprCmdRaw, intern = TRUE))
-    }
+    iprCmdRaw <- sprintf("%s -i %s -mode convert -f RAW -o %s", settings$interpro$exe, iprXml, job$iprFile)
+    system(iprCmdRaw)
     # clean up temporary file
     if (!is.na(iprXml) && file.exists(iprXml)) system(paste("rm", iprXml))
     # done
-    if (file.exists(job$iprFile)) {
+    if (fileReallyExists(job$iprFile)) {
       job$iprStatus <- "InterPro: Done"
-      #job$messages <- c(job$messages, paste("InterPro: Generated", job$iprFile))
     } else {
-      job$iprStatus <- "InterPro: Failed to convert XML to raw (txt)"
-      job$messages <- c(job$messages, job$iprStatus)
-      job$status <- "failure"
+      job$iprStatus <- "InterPro: Failed to convert XML to raw (txt) - no matches"
+      #job$status <- "failure"
       job$endTime <- currentTimeString()
     }
   } else {
     job$iprStatus <- "InterPro: Failed, no XML output"
-    job$messages <- c(job$messages, job$iprStatus)
-    job$status <- "failure"
+    #job$status <- "failure"
     job$endTime <- currentTimeString()
   }
   writeJob(job)
   job
 }
 
-runHMMer <- function(job, quiet) {
+runHMMer <- function(job) {
   hmmCmd <- sprintf("%s --cpu %d --tblout %s %s %s",
     settings$hmmer$exe, num_threads, job$hmmFile, settings$hmmer$db, job$inputFile)
   job$hmmStatus <- "HMMer: Running"
   writeJob(job)
-  if (quiet) {
-    system(hmmCmd)
-  } else {
-    job$messages <- c(job$messages, system(hmmCmd, intern = TRUE))
-  }
-  if (file.exists(job$hmmFile)) {
+  system(hmmCmd)
+  if (hmmFileReallyExists(job$hmmFile)) {
     job$hmmStatus <- "HMMer: Done"
-    #job$messages <- c(job$messages, paste("HMMer: Generated", job$hmmFile))
   } else {
     job$hmmStatus <- "HMMer: Failed, no output"
-    job$messages <- c(job$messages, job$hmmStatus)
-    job$status <- "failure"
+    #job$status <- "failure"
     job$endTime <- currentTimeString()
   }
   writeJob(job)
   job
 }
 
-runJob <- function(job, quiet = TRUE) {
+runJob <- function(job) {
   if (!dir.exists(job$dir)) dir.create(job$dir)
 
   # ESTScan
   if (job$sequenceType == "nucleotide") {
-    if (isActive(job)) job <- runESTScan(job, quiet)
+    if (isActive(job)) job <- runESTScan(job)
   }
 
   # BLAST
-  if (isActive(job)) job <- runBLAST(job, quiet)
+  if (isActive(job)) job <- runBLAST(job)
 
   # AHRD
-  if (isActive(job)) job <- runAHRD(job, quiet)
+  if (isActive(job)) job <- runAHRD(job)
 
   # InterPro
   if (job$useInterpro) {
-    if (isActive(job)) job <- runInterPro(job, quiet)
+    if (isActive(job)) job <- runInterPro(job)
   }
 
   # HMMer
-  if (isActive(job)) job <- runHMMer(job, quiet)
+  if (isActive(job)) job <- runHMMer(job)
 
   # Job completed!
   if (isActive(job)) {
     job$status <- "success"
     job$endTime <- currentTimeString()
-    #job$messages <- c(job$messages, "Done.")
   }
   writeJob(job)
   job
@@ -435,30 +431,37 @@ writeJob <- function(job) {
 
 # Read output files and create summary table
 createSummaryTable <- function(job) {
-  job$summaryStatus <- "Postprocessing: Running"
-  writeJob(job)
+  if (!endsWith(job$summaryStatus, "Done")) {
+    job$summaryStatus <- "Postprocessing: Running"
+    writeJob(job)
+  }
 
   # AHRD
   df.ahrd <- read.table(job$ahrdFile, skip = 2, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
   df.summary <- df.summary.txt <- df.ahrd[, 1:4]
   colnames.summary <- c("Query", "AHRD BLAST Hit", "AHRD Quality<sup>3</sup>", "AHRD Descriptor")
+  blankColumn <- rep("", nrow(df.summary))
 
   # InterPro
   if (job$useInterpro) {
-    df.ipr <- read.table(job$iprFile, header = FALSE, sep = "\t", fill = TRUE, stringsAsFactors = FALSE)
-    # Loop over all sequences, match with first column of df.ahrd
-    df.i <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
-      df.ii <- df.ipr[df.ipr[, 1] == q, ]
-      iit <- setdiff(unique(df.ii[, 12]), "NULL")
-      go <- stri_match_all(df.ii[, 14], regex = "\\(GO:(\\d+)\\)")
-      go <- setdiff(unique(unlist(sapply(go, function(g) g[, 2], USE.NAMES = FALSE))), NA)
-      iit1 <- ifelse(length(iit) == 0, "", paste(sprintf("<a href='https://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a>", iit, iit), collapse = ", "))
-      go1 <- ifelse(length(go) == 0, "", paste(sprintf("<a href='http://amigo.geneontology.org/amigo/term/GO:%s' target='_blank'>%s</a>", go, go), collapse = ", "))
-      iit2 <- ifelse(length(iit) == 0, "", paste(iit, collapse = ","))
-      go2 <- ifelse(length(go) == 0, "", paste(go, collapse = ","))
-      # InterPro id, GO terms (HTML and text format)
-      c(iit1, go1, iit2, go2)
-    })), stringsAsFactors = FALSE)
+    if (!file.exists(job$iprFile)) {
+      df.i <- data.frame(iit1 = blankColumn, go1 = blankColumn, iit2 = blankColumn, go2 = blankColumn, stringsAsFactors = FALSE)
+    } else {
+      df.ipr <- read.table(job$iprFile, header = FALSE, sep = "\t", fill = TRUE, stringsAsFactors = FALSE)
+      # Loop over all sequences, match with first column of df.ahrd
+      df.i <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
+        df.ii <- df.ipr[df.ipr[, 1] == q, ]
+        iit <- setdiff(unique(df.ii[, 12]), "NULL")
+        go <- stri_match_all(df.ii[, 14], regex = "\\(GO:(\\d+)\\)")
+        go <- setdiff(unique(unlist(sapply(go, function(g) g[, 2], USE.NAMES = FALSE))), NA)
+        iit1 <- ifelse(length(iit) == 0, "", paste(sprintf("<a href='https://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a>", iit, iit), collapse = ", "))
+        go1 <- ifelse(length(go) == 0, "", paste(sprintf("<a href='http://amigo.geneontology.org/amigo/term/GO:%s' target='_blank'>%s</a>", go, go), collapse = ", "))
+        iit2 <- ifelse(length(iit) == 0, "", paste(iit, collapse = ","))
+        go2 <- ifelse(length(go) == 0, "", paste(go, collapse = ","))
+        # InterPro id, GO terms (HTML and text format)
+        c(iit1, go1, iit2, go2)
+      })), stringsAsFactors = FALSE)
+    }
     df.summary <- cbind(df.summary, data.frame(iit = df.i[, 1], go = df.i[, 2], stringsAsFactors = FALSE))
     df.summary.txt <- cbind(df.summary.txt, data.frame(iit = df.i[, 3], go = df.i[, 4], stringsAsFactors = FALSE))
     colnames.summary <- c(colnames.summary, "InterPro-ID", "GO Terms")
@@ -476,41 +479,47 @@ createSummaryTable <- function(job) {
   )
 
   # HMMer
-  ll.hmm <- readLines(job$hmmFile)
-  ll.hmm <- ll.hmm[!startsWith(ll.hmm, "#")]
-  df.hmm <- as.data.frame(do.call(rbind, strsplit(ll.hmm, split = "\\s+")), stringsAsFactors = FALSE)
-  # Loop over all sequences, match with first column of df.ahrd
-  df.h <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
-    df.hi <- df.hmm[df.hmm[, 3] == q, ]
-    if (nrow(df.hi) == 0) {
-      gf1 <- gfs1 <- gf2 <- gfs2 <- ""
-    } else {
-      gf1 <- paste(sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' target='_blank'>%s</a>", df.hi[1, 1], df.hi[1, 1]),
-        "<a href='' target='_blank'><img src='tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>")
-      gf2 <- df.hi[1, 1]
-      gfs1 <- gfs2 <- df.hi[1, 5]
-    }
-    # gene families, gene family score (HTML and text format)
-    c(gf1, gfs1, gf2, gfs2)
-  })), stringsAsFactors = FALSE)
+  if (!file.exists(job$hmmFile)) {
+    df.h <- data.frame(gf1 = blankColumn, gfs1 = blankColumn, gf2 = blankColumn, gfs2 = blankColumn, stringsAsFactors = FALSE)
+  } else {
+    ll.hmm <- readLines(job$hmmFile)
+    ll.hmm <- ll.hmm[!startsWith(ll.hmm, "#")]
+    df.hmm <- as.data.frame(do.call(rbind, strsplit(ll.hmm, split = "\\s+")), stringsAsFactors = FALSE)
+    # Loop over all sequences, match with first column of df.ahrd
+    df.h <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
+      df.hi <- df.hmm[df.hmm[, 3] == q, ]
+      if (nrow(df.hi) == 0) {
+        gf1 <- gfs1 <- gf2 <- gfs2 <- ""
+      } else {
+        gf1 <- paste(sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' target='_blank'>%s</a>", df.hi[1, 1], df.hi[1, 1]),
+          "<a href='' target='_blank'><img src='tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>")
+        gf2 <- df.hi[1, 1]
+        gfs1 <- gfs2 <- df.hi[1, 5]
+      }
+      # gene families, gene family score (HTML and text format)
+      c(gf1, gfs1, gf2, gfs2)
+    })), stringsAsFactors = FALSE)
+  }
   df.summary <- cbind(df.summary, data.frame(gf = df.h[, 1], gfs = df.h[, 2], stringsAsFactors = FALSE))
   df.summary.txt <- cbind(df.summary.txt, data.frame(gf = df.h[, 3], gfs = df.h[, 4], stringsAsFactors = FALSE))
   colnames.summary <- c(colnames.summary, "Gene Family", "GF Score<sup>1</sup>")
 
   # BLAST
   df.blast <- list()
-  numBlastFiles <- length(job$blastFiles)
-  for (i in 1:numBlastFiles) {
+  ii <- which(file.exists(job$blastFiles))
+  for (i in ii) {
     df.blast[[i]] <- read.table(job$blastFiles[i], header = FALSE, sep = "\t", stringsAsFactors = FALSE)
   }
   # Loop over all sequences, match with first column of df.ahrd
   df.b <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
-    # Loop over the three BLAST results and choose the one with the highest score (column 12)
-    bbh <- bs <- NA
-    for (i in 1:numBlastFiles) {
+    # Loop over the BLAST results and choose the one with the highest score (column 12)
+    bbh <- bs <- score <- ""
+    for (i in ii) {
+      if (!(q %in% df.blast[[i]][, 1])) next
       df.bi <- df.blast[[i]][df.blast[[i]][, 1] == q, ]
       m <- which(df.bi[, 12] == max(df.bi[, 12]))[1]
-      if (is.na(bs) || df.bi[m, 11] < bs) {
+      if (score == "" || df.bi[m, 12] > score) {
+        score <- df.bi[m, 12]
         bs <- df.bi[m, 11]
         bbh <- df.bi[m, 2]
       }
@@ -527,8 +536,10 @@ createSummaryTable <- function(job) {
   df.summary <- df.summary[order(df.summary[, 1]), ]
   df.summary.txt <- df.summary.txt[order(df.summary.txt[, 1]), ]
 
-  job$summaryStatus <- "Postprocessing: Done"
-  writeJob(job)
+  if (!endsWith(job$summaryStatus, "Done")) {
+    job$summaryStatus <- "Postprocessing: Done"
+    writeJob(job)
+  }
 
   list(simpleTable = df.simpleTable, columnNames = colnames.summary,
     summaryTable = df.summary, summaryTableOut = df.summary.txt)

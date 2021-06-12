@@ -18,4 +18,4 @@ singularity exec \
   --bind ${SINGULARITYENV_PREPEND_PATH} \
   --pwd /srv/shiny-server \
   funnotate.sif \
-  Rscript -e "library(shiny); runApp(host='0.0.0.0', port=3838)"
+  Rscript -e "library(shiny); runApp(host='127.0.0.1', port=3838)"

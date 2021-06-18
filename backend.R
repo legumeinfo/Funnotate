@@ -490,8 +490,8 @@ createSummaryTable <- function(job) {
       if (nrow(df.hi) == 0) {
         gf1 <- gfs1 <- gf2 <- gfs2 <- ""
       } else {
-        gf1 <- paste(sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' target='_blank'>%s</a>", df.hi[1, 1], df.hi[1, 1]),
-          "<a href='' target='_blank'><img src='tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>")
+        gf1 <- paste(sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' title='View the phylotree for this family' target='_blank'>%s</a>", df.hi[1, 1], df.hi[1, 1]),
+          "<a href='' title='Rebuild family phylotree including your sequence' target='_blank'><img src='tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>")
         gf2 <- df.hi[1, 1]
         gfs1 <- gfs2 <- df.hi[1, 5]
       }

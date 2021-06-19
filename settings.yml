@@ -35,7 +35,7 @@ interpro:
   exe: /erdos/adf/sw/interproscan-5.3-46.0/interproscan-java1.7.sh
   # Possible alternative:
   # exe <- /erdos/adf/sw/interproscan-5.3-46.0/interproscan.sh
-  params: -appl TIGRFAM,ProDom,SMART,SUPERFAMILY,Gene3D,PIRSF,Pfam,Coils
+  params: -appl TIGRFAM,SMART,SUPERFAMILY,Gene3D,PIRSF,Pfam,Coils
 
 # HMMer
 hmmer:

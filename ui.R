@@ -5,6 +5,24 @@ library(DT)
 
 ui <- fluidPage(
   useShinyjs(),
+  # Chroma
+  singleton(tags$head(tags$script(src='https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.2/chroma.min.js', type='text/javascript'))),
+  # TnT Tree
+  singleton(tags$head(tags$link(href='http://tntvis.github.io/tnt.tree/build/tnt.tree.css', rel='stylesheet', type='text/css'))),
+  singleton(tags$head(tags$script(src='http://d3js.org/d3.v3.min.js', type='text/javascript'))),
+  singleton(tags$head(tags$script(src='http://tntvis.github.io/tnt.tree/build/tnt.tree.min.js', type='text/javascript'))),
+  # NVD3 (for Taxa chart)
+  singleton(tags$head(tags$link(href='https://cdn.rawgit.com/novus/nvd3/v1.8.1/build/nv.d3.css', rel='stylesheet', type='text/css'))),
+  singleton(tags$head(tags$script(src='https://cdn.rawgit.com/novus/nvd3/v1.8.1/build/nv.d3.min.js', type='text/javascript'))),
+  # MSA Viewer
+  singleton(tags$head(tags$link(href='https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.min.gz.css', rel='stylesheet', type='text/css'))),
+  singleton(tags$head(tags$script(src='https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.min.gz.js', type='text/javascript'))),
+  # Ours (for phylotree and distance scale)
+  singleton(tags$head(tags$link(href='css/phylogram.css', rel='stylesheet', type='text/css'))),
+  # singleton(tags$head(tags$script(src='js/phylogram.js', type='text/javascript'))),
+  extendShinyjs(script = "www/js/phylogram.js", functions = c(
+    "displayPhylotree", "changePhylotreeLayout", "displayTaxaView", "resetTaxaView", "displayMSAView")
+  ),
 
   # base HTML
   h2("Funnotate"),
@@ -97,6 +115,24 @@ ui <- fluidPage(
     conditionalPanel("output.jobStatus != 'running'",
       actionLink("jhome", "Start Over")
     ),
+
+    textOutput("phylogramStatus"),
+    h3("Phylogram"),
+    htmlOutput("phylogramFamilyInfo"),
+    p(""),
+    checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
+      choices = c("Gene Family Help", "Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
+    conditionalPanel("output.displayGeneFamilyHelp == 'true'", tags$div(id = "gfhelp")),
+    conditionalPanel("output.displayTaxaAndLegend == 'true'",
+      actionButton("resetTaxa", label = "Reset Taxa Selection"),
+      HTML("<div id='taxaDiv'><svg id='taxa' height='300px'></svg></div>")
+    ),
+    conditionalPanel("output.displayMSA == 'true'", tags$div(id = "msa")),
+
+    radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
+    textOutput("phylotreeHilited"), #, "Jump to highlighted feature: ..."),
+    HTML("<svg id='phylotreeDistanceScale'></svg>"),
+    tags$div(id = "phylotree"),
     hr()
   )
 )

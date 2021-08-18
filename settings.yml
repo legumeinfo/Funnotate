@@ -45,5 +45,10 @@ hmmer:
   # params: [...]
   # target_families: [...]/07_family_fasta
 
+# Lorax
+lorax:
+  url: 127.0.0.1:8000
+  # args: [...]
+
 ############
 

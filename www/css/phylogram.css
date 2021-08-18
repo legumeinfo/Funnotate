@@ -1,0 +1,26 @@
+/* ========================================================== */
+
+.hilite-node {
+  fill: yellow;
+}
+
+.axis {
+  shape-rendering: crispEdges;
+}
+
+.x.axis .tick {
+  font-size: 9px;
+}
+
+.x.axis .minor {
+  stroke-opacity: .5;
+}
+
+.x.axis line,
+.x.axis path {
+  fill: none;
+  stroke: grey;
+}
+
+/* ========================================================== */
+

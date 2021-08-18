@@ -11,6 +11,7 @@ server <- function(input, output, session) {
 
   # Handle state from URL
   # output$page is a hidden output used for conditionalPanel conditions
+  # TODO: refactor so as to test only once for existingJob
   output$page <- reactive({
     whichPage <- "home"
 
@@ -32,6 +33,17 @@ server <- function(input, output, session) {
         if (!is.null(existingJob)) {
           whichPage <- "job"
           displayJob(existingJob)
+        }
+      }
+    } else if (numUrlFields == 2) {
+      if (!is.null(urlFields$job) && !is.null(urlFields$family)) {
+        # Create Lorax tree for sequences that match the selected gene family
+        existingJob <- readJob(urlFields$job)
+        if (!is.null(existingJob)) {
+          loraxResults <- buildUserPhylogram(existingJob, urlFields$family)
+          whichPage <- "job"
+          displayJob(existingJob)
+          displayPhylogram(existingJob, loraxResults)
         }
       }
     }
@@ -256,6 +268,79 @@ server <- function(input, output, session) {
 
     # Return something other than the promise, so that Shiny remains responsive.
     # NULL
+  })
+
+  displayPhylogram <- function(job, phylogramInfo, useVerticalLayout = TRUE) {
+    if (is.null(phylogramInfo)) return()
+    # Otherwise, display phylotree for selected gene family, with user sequence(s) inserted
+
+    # Display status/error message, if any
+    output$phylogramStatus <- renderText({
+      if (!phylogramInfo$done) {
+        invalidateLater(3000) # put delay time in settings?
+        phylogramInfo <- buildUserPhylogram(job, phylogramInfo$family)
+      }
+      phylogramInfo$message
+    })
+
+    if (!is.null(phylogramInfo$tree)) {
+      familyInfo <- phylogramInfo$descriptor
+      interproIds <- character(0)
+      if (!is.null(phylogramInfo$ipr)) {
+        interproIds <- sort(unlist(strsplit(phylogramInfo$ipr, ","))) # sort to maintain order when matching
+      }
+      if (length(interproIds) > 0) {
+        iprNames <- df.interpro$ENTRY_NAME[df.interpro$ENTRY_AC %in% interproIds]
+        iprInfo <- sprintf("<a href='http://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a> (%s)", interproIds, interproIds, iprNames)
+        familyInfo <- paste(familyInfo, paste(iprInfo, collapse = ", "), sep = "; ")
+      }
+      goTerms <- character(0)
+      if (!is.null(phylogramInfo$go)) {
+        goTerms <- sort(unlist(strsplit(phylogramInfo$go, ",")))
+      }
+      if (length(goTerms) > 0) {
+        goNames <- df.goterms$name[df.goterms$GO.term %in% goTerms]
+        goInfo <- sprintf("<a href='http://amigo.geneontology.org/amigo/term/GO:%s' target='_blank'>GO:%s</a> (%s)", goTerms, goTerms, goNames)
+        familyInfo <- paste(familyInfo, paste(goInfo, collapse = ", "), sep = "; ")
+      }
+      output$phylogramFamilyInfo <- renderUI(HTML(sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, familyInfo)))
+      output$phylotreeHilited <- renderText(sprintf("Jump to highlighted feature: %s", phylogramInfo$seqNames))
+      rv$tree <- phylogramInfo$tree
+      js$displayPhylotree(phylogramInfo$tree, "phylotree")
+
+      # Taxa and Legend chart
+      js$displayTaxaView(phylogramInfo$taxa, "taxa", phylogramInfo$tree)
+    }
+    if (!is.null(phylogramInfo$msa)) {
+      js$displayMSAView(phylogramInfo$msa, "msa")
+    }
+  }
+
+  observeEvent(input$resetTaxa, {
+    js$resetTaxaView("taxa")
+  })
+
+  observeEvent(input$phylotreeLayout, {
+    js$changePhylotreeLayout(startsWith(input$phylotreeLayout, "Vertical"), "phylotree");
+  })
+
+  output$displayGeneFamilyHelp <- reactive("false")
+  output$displayTaxaAndLegend <- reactive("false")
+  output$displayMSA <- reactive("false")
+  outputOptions(output, "displayGeneFamilyHelp", suspendWhenHidden = FALSE)
+  outputOptions(output, "displayTaxaAndLegend", suspendWhenHidden = FALSE)
+  outputOptions(output, "displayMSA", suspendWhenHidden = FALSE)
+
+  observeEvent(input$phylogramToggleDisplay, {
+    output$displayGeneFamilyHelp <- renderText(
+      ifelse("Gene Family Help" %in% input$phylogramToggleDisplay, "true", "false")
+    )
+    output$displayTaxaAndLegend <- renderText(
+      ifelse("Taxa and Legend" %in% input$phylogramToggleDisplay, "true", "false")
+    )
+    output$displayMSA <- renderText(
+      ifelse("MSA Visualization" %in% input$phylogramToggleDisplay, "true", "false")
+    )
   })
 }
 

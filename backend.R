@@ -1,5 +1,7 @@
 # --------------------------------------------------------------
 library(Biostrings)
+library(httr)
+library(jsonlite)
 library(stringi)
 library(yaml)
 # --------------------------------------------------------------
@@ -7,6 +9,25 @@ library(yaml)
 # Global settings
 # setwd("/srv/shiny-server/Funnotate") # already there
 settings <- read_yaml("settings.yml")
+
+# Global data:
+# Read table of InterPro data
+df.interpro <- read.table("https://ftp.ebi.ac.uk/pub/databases/interpro/entry.list",
+  header = TRUE, sep = "\t", colClasses = "character", stringsAsFactors = FALSE)
+# Build table of GO terms
+getGOTerms <- function() {
+  ll.go <- readLines("https://ftp.ebi.ac.uk/pub/databases/interpro/interpro2go")
+  ll.go <- ll.go[!startsWith(ll.go, "!")]
+  mx.go <- t(sapply(ll.go, function(go) {
+    stri_match_first(go, regex = "^.+GO:(.+) ; GO:(\\d+)$")
+  }, USE.NAMES = FALSE))
+  df.go <- as.data.frame(mx.go[, c(3, 2)])
+  names(df.go) <- c("GO.term", "name")
+  # deduplicate
+  df.go <- unique(df.go)
+  df.go
+}
+df.goterms <- getGOTerms()
 
 # --------------------------------------------------------------
 
@@ -490,8 +511,11 @@ createSummaryTable <- function(job) {
       if (nrow(df.hi) == 0) {
         gf1 <- gfs1 <- gf2 <- gfs2 <- ""
       } else {
-        gf1 <- paste(sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' title='View the phylotree for this family' target='_blank'>%s</a>", df.hi[1, 1], df.hi[1, 1]),
-          "<a href='' title='Rebuild family phylotree including your sequence' target='_blank'><img src='tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>")
+        family <- df.hi[1, 1]
+        gf1 <- paste(
+          sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' title='View the phylotree for this family' target='_blank'>%s</a>", family, family),
+          sprintf("<a href='?job=%s&family=%s' title='Rebuild family phylotree including your sequence' target='%s.%s'><img src='tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>", job$id, family, family, job$id)
+        )
         gf2 <- df.hi[1, 1]
         gfs1 <- gfs2 <- df.hi[1, 5]
       }
@@ -542,6 +566,140 @@ createSummaryTable <- function(job) {
 
   list(simpleTable = df.simpleTable, columnNames = colnames.summary,
     summaryTable = df.summary, summaryTableOut = df.summary.txt)
+}
+
+# --------------------------------------------------------------
+
+# Write sequences and their names for a given (job, gene family) to a temporary file for input to Lorax
+# TODO: better description, refactoring
+buildUserPhylogram <- function(job, family) {
+  # TODO: error checking...
+
+  # output: append user phylogram information or status/error messages, as appropriate
+  userPhylogramInfo <- list(family = family, done = FALSE)
+  df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  ff.matches <- (df.summary.txt$Gene.Family == family)
+  userPhylogramInfo$descriptor <- df.summary.txt$AHRD.Descriptor[ff.matches]
+  userPhylogramInfo$ipr <- df.summary.txt$InterPro.ID[ff.matches]
+  userPhylogramInfo$go <- df.summary.txt$GO.Terms[ff.matches]
+
+  # Check status of phylotree computation
+  family_job <- paste(family, job$id, sep = ".")
+
+  statusUrl <- sprintf("%s/trees/%s/FastTree/status", settings$lorax$url, family_job)
+  statusResponse <- GET(statusUrl)
+  statusResult <- 42
+  tryCatch({
+    statusResult <- fromJSON(rawToChar(statusResponse$content))
+  }, error = function(e) {
+    #statusResult <- 42
+  })
+  statusCode <- statusResponse$status_code
+
+  if (statusResult == -1) {
+    userPhylogramInfo$message <- "Computing phylogenetic tree, please be patient."
+    return(userPhylogramInfo)
+
+  } else if (statusResult == 0) {
+    # Done computing phylogenetic tree, now parse it
+    treeUrl <- sprintf("%s/trees/%s/FastTree/tree.nwk", settings$lorax$url, family_job)
+    treeResponse <- GET(treeUrl)
+    newickTree <- rawToChar(treeResponse$content)
+
+    userSeqNames <- paste0("USR.", stri_match_all(newickTree, regex = sprintf("%s\\.([^\\:]+)\\:", job$id))[[1]][, 2])
+    newickTree <- gsub(job$id, "USR", newickTree)
+
+    # Return the multiple sequence alignment as well
+    msaUrl <- sprintf("%s/trees/%s/alignment", settings$lorax$url, family_job)
+    msaResponse <- GET(msaUrl)
+    msa <- rawToChar(msaResponse$content)
+    msa <- gsub(job$id, "USR", msa)
+
+    # success
+    userPhylogramInfo$seqNames <- userSeqNames
+    userPhylogramInfo$tree <- trimws(newickTree)
+    userPhylogramInfo$taxa <- treeToTaxa(userPhylogramInfo$tree)
+    userPhylogramInfo$msa <- trimws(msa)
+    userPhylogramInfo$done <- TRUE
+    return(userPhylogramInfo)
+
+  } else if (statusCode == 404) {
+    # Phylogenetic tree computation not yet started
+
+    # Find matching sequences for family, and write them to a temporary file to upload to Lorax
+    seqNames <- df.summary.txt$Query[ff.matches]
+    numMatchingSequences <- length(seqNames)
+    if (numMatchingSequences == 0) {
+      userPhylogramInfo$message <- paste("No matching sequences for", family)
+      userPhylogramInfo$done <- TRUE
+      return(userPhylogramInfo)
+    }
+    # Replace '|' and ':' by '.' (why?)
+    seqNames <- gsub("[|:]", ".", seqNames)
+    # ---
+    fasta <- readAAStringSet(job$inputFile) # original or translated protein sequence
+    allSeqNames <- names(fasta)
+    allSequences <- as.character(fasta)
+    # ---
+    seqFilename <- sprintf("temp/%s.fasta", family_job)
+    if (file.exists(seqFilename)) {
+      # TODO: do we need this?
+      system(paste("rm", seqFilename))
+      system(paste("touch", seqFilename))
+    }
+    for (sn in seqNames) {
+      i <- which(grepl(sn, allSeqNames))
+      write(paste0(">", allSeqNames[i]), seqFilename, append = TRUE)
+      # split FASTA sequences into lines of at most 60 characters
+      ss <- unlist(stri_match_all(allSequences[i], regex = ".{1,60}"))
+      for (s in ss) write(s, seqFilename, append = TRUE)
+    }
+
+    # Upload (POST) matching sequences to Lorax
+    sequencesUrl <- sprintf("%s/trees/%s/sequences", settings$lorax$url, family_job)
+    sequencesResponse <- POST(sequencesUrl, body = list(peptide = upload_file(seqFilename)), verbose())
+    sequencesCode <- sequencesResponse$status_code
+
+    # Clean up
+    if (file.exists(seqFilename)) system(paste("rm", seqFilename))
+
+    if (sequencesCode == 500) {
+      # Internal Server Error
+      userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree for %s (no sequences).", sequencesCode, family)
+      userPhylogramInfo$done <- TRUE
+      return(userPhylogramInfo)
+    } else if (sequencesCode != 200) {
+      userPhylogramInfo$message <- sprintf("Error %d: Sequence upload for tree computation was not successful.", sequencesCode)
+      userPhylogramInfo$done <- TRUE
+      return(userPhylogramInfo)
+    } else {
+      # Tree computation using hmmalign
+      hmmalignUrl <- sprintf("%s/trees/%s/hmmalign_FastTree", settings$lorax$url, family_job)
+      hmmalignResponse <- GET(hmmalignUrl)
+      hmmalignCode <- hmmalignResponse$status_code
+      if (hmmalignCode != 200) {
+        userPhylogramInfo$message <- sprintf("Error %d: Launch of tree computation was not successful.", hmmalignCode)
+        userPhylogramInfo$done <- TRUE
+      } else {
+        userPhylogramInfo$message <- "Tree computation launched successfully."
+      }
+      return(userPhylogramInfo)
+    }
+
+  } else {
+    userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree.", statusCode)
+    userPhylogramInfo$done <- TRUE
+    return(userPhylogramInfo)
+  }
+}
+
+treeToTaxa <- function(tree) {
+  ggt <- ggtree::read.tree(text = tree)
+  nt <- length(ggt$tip.label)
+  lbl = stri_match_first(ggt$tip.label, regex = "^(.[^\\.]+)\\.")[, 2]
+  tt <- table(lbl)
+  df.tt <- as.data.frame(tt)
+  df.tt
 }
 
 # --------------------------------------------------------------

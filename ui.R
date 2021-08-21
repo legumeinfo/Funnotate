@@ -20,8 +20,8 @@ ui <- fluidPage(
   # Ours (for phylotree and distance scale)
   singleton(tags$head(tags$link(href='css/phylogram.css', rel='stylesheet', type='text/css'))),
   # singleton(tags$head(tags$script(src='js/phylogram.js', type='text/javascript'))),
-  extendShinyjs(script = "www/js/phylogram.js", functions = c(
-    "displayPhylotree", "changePhylotreeLayout", "displayTaxaView", "resetTaxaView", "displayMSAView")
+  extendShinyjs(script = "www/js/phylogram.js",
+    functions = c("setPhylotree", "setPhylotreeLayout", "resetTaxa", "setMSA")
   ),
 
   # base HTML

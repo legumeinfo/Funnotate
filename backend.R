@@ -618,7 +618,6 @@ buildUserPhylogram <- function(job, family) {
     # success
     userPhylogramInfo$seqNames <- userSeqNames
     userPhylogramInfo$tree <- trimws(newickTree)
-    userPhylogramInfo$taxa <- treeToTaxa(userPhylogramInfo$tree)
     userPhylogramInfo$msa <- trimws(msa)
     userPhylogramInfo$done <- TRUE
     return(userPhylogramInfo)
@@ -691,15 +690,6 @@ buildUserPhylogram <- function(job, family) {
     userPhylogramInfo$done <- TRUE
     return(userPhylogramInfo)
   }
-}
-
-treeToTaxa <- function(tree) {
-  ggt <- ggtree::read.tree(text = tree)
-  nt <- length(ggt$tip.label)
-  lbl = stri_match_first(ggt$tip.label, regex = "^(.[^\\.]+)\\.")[, 2]
-  tt <- table(lbl)
-  df.tt <- as.data.frame(tt)
-  df.tt
 }
 
 # --------------------------------------------------------------

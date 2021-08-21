@@ -306,22 +306,20 @@ server <- function(input, output, session) {
       output$phylogramFamilyInfo <- renderUI(HTML(sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, familyInfo)))
       output$phylotreeHilited <- renderText(sprintf("Jump to highlighted feature: %s", phylogramInfo$seqNames))
       rv$tree <- phylogramInfo$tree
-      js$displayPhylotree(phylogramInfo$tree, "phylotree")
-
-      # Taxa and Legend chart
-      js$displayTaxaView(phylogramInfo$taxa, "taxa", phylogramInfo$tree)
+      js$setPhylotree(phylogramInfo$tree, "phylotree") # sets tree data for both phylotree and taxa chart
     }
     if (!is.null(phylogramInfo$msa)) {
-      js$displayMSAView(phylogramInfo$msa, "msa")
+      js$setMSA(phylogramInfo$msa, "msa")
     }
   }
 
   observeEvent(input$resetTaxa, {
-    js$resetTaxaView("taxa")
+    js$resetTaxa("taxa")
   })
 
   observeEvent(input$phylotreeLayout, {
-    js$changePhylotreeLayout(startsWith(input$phylotreeLayout, "Vertical"), "phylotree");
+    layout <- stri_match_first(input$phylotreeLayout, regex = "^(.+) layout$")[, 2]
+    js$setPhylotreeLayout(layout, "phylotree");
   })
 
   output$displayGeneFamilyHelp <- reactive("false")

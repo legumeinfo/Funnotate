@@ -118,34 +118,33 @@ function taxonToColor(taxon) {
 
 // =============================================================
 
-// TODO: standardize function names
-shinyjs.displayPhylotree = function(args) {
-  var newick = args[0];
-  localStorage.setItem("newickTree", newick);
+// Send a tree (in Newick format) to the phylotree chart
+shinyjs.setPhylotree = function(args) {
+  sessionStorage.setItem("newickTree", args[0]);
+  var elementId = args[1];
+  drawPhylotree(elementId);
+
+  // this tree also defines the taxa for the Taxa chart
+  setTaxa("taxa");
+}
+
+// Update the phylotree chart layout (vertical or radial)
+shinyjs.setPhylotreeLayout = function(args) {
+  sessionStorage.setItem("treeLayout", args[0]);
   var elementId = args[1];
   drawPhylotree(elementId);
 }
 
-shinyjs.changePhylotreeLayout = function(args) {
-  var useVerticalLayout = args[0];
-  localStorage.setItem("verticalLayout", useVerticalLayout);
-  var elementId = args[1];
-  drawPhylotree(elementId);
-}
-
-function filterPhylotree(taxa, elementId) {
-  localStorage.setItem("taxa", taxa);
-  drawPhylotree(elementId);
-}
-
+// Render the phylotree
 function drawPhylotree(elementId) {
   // read the (Newick) tree
-  var newick = localStorage.getItem("newickTree");
+  var newick = sessionStorage.getItem("newickTree");
   var tree = tnt.tree().data(tnt.tree.parse_newick(newick));
 
   // filter by taxa
-  var taxa = localStorage.getItem("taxa");
+  var taxa = sessionStorage.getItem("taxa");
   if (taxa !== null) {
+    taxa = JSON.parse(taxa);
     var leaves = tree.root().find_all(function(node) {
       if (!node.is_leaf()) return false;
       var gensp = node.node_name().substring(0, 5);
@@ -158,15 +157,12 @@ function drawPhylotree(elementId) {
 
   // set tree layout
   var width = window.innerWidth - 200;
-  var useVerticalLayout = (localStorage.getItem("verticalLayout") == "true");
-  if (useVerticalLayout === null) {
-    useVerticalLayout = true;
-    localStorage.setItem("verticalLayout", useVerticalLayout);
-  }
-  if (useVerticalLayout) {
-    tree.layout(tnt.tree.layout.vertical().width(width));
-  } else {
+  var layout = sessionStorage.getItem("treeLayout");
+  if (layout === "Radial") {
     tree.layout(tnt.tree.layout.radial().width(width));
+  } else {
+    // "Vertical" or null
+    tree.layout(tnt.tree.layout.vertical().width(width));
   }
 
   // set node colors and labels
@@ -220,6 +216,61 @@ function getXAxis(tree, width) {
 
 // =============================================================
 
+// Set the Taxa and Legend chart data (Newick tree and selected taxa) from sessionStorage
+function setTaxa(elementId) {
+  var elementTag = "#" + elementId;
+
+  // read the (Newick) tree
+  var newick = sessionStorage.getItem("newickTree");
+  var count = countTaxa(newick);
+
+  // read currently selected taxa
+  var taxa = sessionStorage.getItem("taxa");
+  if (taxa !== null) taxa = JSON.parse(taxa);
+
+  // transform to objects expected by nvd3 chart
+  var data = _.map(Object.keys(count).sort(), k => {
+    d = {
+      label: k,
+      value: count[k],
+      color: taxonToColor(k),
+      disabled: !(taxa === null || taxa.includes(taxonToGensp(k)))
+    };
+    return d;
+  });
+  nv.addGraph(function() {
+    var chart = nv.models.pieChart()
+      .x(function(d) { return d.label })
+      .y(function(d) { return d.value })
+      .color(function(d) { return d.color })
+      .showLabels(true)
+      .labelThreshold(0.05)
+      .labelType("percent")
+      .donut(true)
+      .donutRatio(0.35)
+      .valueFormat(d3.format("d"))
+      .legendPosition("right")
+      .duration(50)
+    ;
+    d3.select(elementTag)
+      .datum(data)
+      .transition().duration(50)
+      .call(chart)
+    ;
+    nv.utils.windowResize(chart.update);
+
+    chart.dispatch.on('stateChange', evt => {
+      // alert("stateChange: " + JSON.stringify(evt));
+      handleTaxaSelection(elementTag);
+    });
+
+    return chart;
+  });
+
+  doResize(); // does not always work here?
+}
+
+// Tabulate the tree's leaf nodes by taxon
 function countTaxa(tree) {
   var root = tnt.tree.parse_newick(tree);
   var leaves = [];
@@ -255,49 +306,7 @@ function countTaxa(tree) {
   return count;
 }
 
-shinyjs.displayTaxaView = function(args) {
-  var taxa = args[0];
-  var elementId = args[1];
-  var elementTag = "#" + elementId;
-  var tree = args[2];
-
-  // transform to objects expected by nvd3 chart
-  var x = countTaxa(tree);
-  var data = _.map(Object.keys(x).sort(), k => {
-    return { label: k, value: x[k], color: taxonToColor(k) };
-  });
-  nv.addGraph(function() {
-    var chart = nv.models.pieChart()
-      .x(function(d) { return d.label })
-      .y(function(d) { return d.value })
-      .color(function(d) { return d.color })
-      .showLabels(true)
-      .labelThreshold(0.05)
-      .labelType("percent")
-      .donut(true)
-      .donutRatio(0.35)
-      .valueFormat(d3.format("d"))
-      .legendPosition("right")
-      .duration(50)
-    ;
-    d3.select(elementTag)
-      .datum(data)
-      .transition().duration(50)
-      .call(chart)
-    ;
-    nv.utils.windowResize(chart.update);
-
-    chart.dispatch.on('stateChange', evt => {
-      // alert("stateChange: " + JSON.stringify(evt));
-      handleTaxaSelection(elementTag);
-    });
-
-    return chart;
-  });
-
-  doResize(); // does not always work here?
-}
-
+// User clicked on the legend to toggle a taxon
 handleTaxaSelection = function(elementTag) {
   // first determine the selected taxa (in gensp format)
   taxa = [];
@@ -308,60 +317,59 @@ handleTaxaSelection = function(elementTag) {
       taxa.push(taxonToGensp(series.label));
     }
   });
+  if (taxa.length == data.length) {
+    sessionStorage.removeItem("taxa");
+  } else {
+    sessionStorage.setItem("taxa", JSON.stringify(taxa));
+  }
 
-  // filter MSA viewer and phylotree by selected taxa
+  // Redraw MSA viewer and phylotree, filtered by selected taxa
   // (TODO: should really notify all registered event listeners)
-  filterMSAView(taxa, "msa");
-  filterPhylotree(taxa, "phylotree");
+  drawMSAView("msa");
+  drawPhylotree("phylotree");
 }
 
-shinyjs.resetTaxaView = function(args) {
+// Reset all taxa to enabled/visible
+shinyjs.resetTaxa = function(args) {
   elementId = args[0];
   elementTag = "#" + elementId;
   var legend = d3.select(elementTag);
   var data = legend.datum();
   data.forEach(function(series) { series.disabled = false });
+  sessionStorage.removeItem("taxa");
 
   handleTaxaSelection(elementTag);
   doResize();
 }
 
-// force a resize, to redraw the chart
+// Force a resize, to redraw the chart
 function doResize() {
   window.dispatchEvent(new Event("resize"));
 }
 
 // =============================================================
 
-function filterMSAView(taxa, elementId) {
+// Send multiple sequence alignment to the MSA view
+shinyjs.setMSA = function(args) {
+  var seqs = msa.io.fasta.parse(args[0]);
+  sessionStorage.setItem("msaSeqs", JSON.stringify(seqs));
+  var elementId = args[1];
+  drawMSAView(elementId);
+}
+
+// Render the MSA view
+function drawMSAView(elementId) {
   document.getElementById(elementId).innerHTML = "";
-  var seqs = JSON.parse(localStorage.getItem("msaSeqs"));
+
+  var taxa = sessionStorage.getItem("taxa");
+  if (taxa !== null) taxa = JSON.parse(taxa);
+
+  var seqs = JSON.parse(sessionStorage.getItem("msaSeqs"));
   seqs = seqs.filter(function(seq) {
     var gensp = seq.name.substring(0, 5);
     if (gensp.startsWith("USR")) gensp = "USR";
-    return taxa.includes(gensp);
+    return (taxa === null || taxa.includes(gensp));
   });
-  var m = msa({
-    el: document.getElementById(elementId),
-    //bootstrapMenu: true, // TODO: get buttons working
-    seqs: seqs,
-    vis: {
-      overviewbox: false,
-      labelId: false
-    },
-    zoomer: {
-      labelNameLength: 150,
-      labelFontsize: 9,
-      autoResize: true
-    }
-  });
-  m.render();
-}
-
-shinyjs.displayMSAView = function(args) {
-  var seqs = msa.io.fasta.parse(args[0]);
-  localStorage.setItem("msaSeqs", JSON.stringify(seqs));
-  var elementId = args[1];
 
   var m = msa({
     el: document.getElementById(elementId),

@@ -263,11 +263,12 @@ function setTaxa(elementId) {
       // alert("stateChange: " + JSON.stringify(evt));
       handleTaxaSelection(elementTag);
     });
+    chart.dispatch.on('renderEnd', () => {
+      doResize();
+    });
 
     return chart;
   });
-
-  doResize(); // does not always work here?
 }
 
 // Tabulate the tree's leaf nodes by taxon

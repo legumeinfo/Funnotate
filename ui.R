@@ -125,7 +125,7 @@ ui <- fluidPage(
     conditionalPanel("output.displayGeneFamilyHelp == 'true'", tags$div(id = "gfhelp")),
     conditionalPanel("output.displayTaxaAndLegend == 'true'",
       actionButton("resetTaxa", label = "Reset Taxa Selection"),
-      HTML("<div id='taxaDiv'><svg id='taxa' height='300px'></svg></div>")
+      HTML("<svg id='taxa' height='300px'></svg>")
     ),
     conditionalPanel("output.displayMSA == 'true'", tags$div(id = "msa")),
 

@@ -11,23 +11,17 @@ library(yaml)
 settings <- read_yaml("settings.yml")
 
 # Global data:
-# Read table of InterPro data
-df.interpro <- read.table("https://ftp.ebi.ac.uk/pub/databases/interpro/entry.list",
-  header = TRUE, sep = "\t", colClasses = "character", stringsAsFactors = FALSE)
-# Build table of GO terms
-getGOTerms <- function() {
-  ll.go <- readLines("https://ftp.ebi.ac.uk/pub/databases/interpro/interpro2go")
-  ll.go <- ll.go[!startsWith(ll.go, "!")]
-  mx.go <- t(sapply(ll.go, function(go) {
-    stri_match_first(go, regex = "^.+GO:(.+) ; GO:(\\d+)$")
-  }, USE.NAMES = FALSE))
-  df.go <- as.data.frame(mx.go[, c(3, 2)])
-  names(df.go) <- c("GO.term", "name")
-  # deduplicate
-  df.go <- unique(df.go)
-  df.go
+# Read table of gene families
+getGeneFamilies <- function() {
+  temp <- tempfile()
+  download.file("https://v1.legumefederation.org/data/v2/LEGUMES/Fabaceae/genefamilies/legume.genefam.fam1.M65K/legume.genefam.fam1.M65K.info_annot_ahrd.tsv.gz", temp)
+  df.gf <- read.table(gzfile(temp, "rt"), header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
+  unlink(temp)
+  names(df.gf) <- c("name", "descriptor")
+  df.gf$name <- gsub("-consensus", "", df.gf$name)
+  df.gf
 }
-df.goterms <- getGOTerms()
+df.geneFamilies <- getGeneFamilies()
 
 # --------------------------------------------------------------
 
@@ -577,11 +571,8 @@ buildUserPhylogram <- function(job, family) {
 
   # output: append user phylogram information or status/error messages, as appropriate
   userPhylogramInfo <- list(family = family, done = FALSE)
-  df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-  ff.matches <- (df.summary.txt$Gene.Family == family)
-  userPhylogramInfo$descriptor <- df.summary.txt$AHRD.Descriptor[ff.matches]
-  userPhylogramInfo$ipr <- df.summary.txt$InterPro.ID[ff.matches]
-  userPhylogramInfo$go <- df.summary.txt$GO.Terms[ff.matches]
+  i.match <- which(grepl(family, df.geneFamilies$name))
+  userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "", df.geneFamilies$descriptor[i.match])
 
   # Check status of phylotree computation
   family_job <- paste(family, job$id, sep = ".")
@@ -626,6 +617,7 @@ buildUserPhylogram <- function(job, family) {
     # Phylogenetic tree computation not yet started
 
     # Find matching sequences for family, and write them to a temporary file to upload to Lorax
+    df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     seqNames <- df.summary.txt$Query[ff.matches]
     numMatchingSequences <- length(seqNames)
     if (numMatchingSequences == 0) {

@@ -284,26 +284,22 @@ server <- function(input, output, session) {
     })
 
     if (!is.null(phylogramInfo$tree)) {
-      familyInfo <- phylogramInfo$descriptor
-      interproIds <- character(0)
-      if (!is.null(phylogramInfo$ipr)) {
-        interproIds <- sort(unlist(strsplit(phylogramInfo$ipr, ","))) # sort to maintain order when matching
+      # Add links to gene family/IPR/GO descriptors
+      gfds <- phylogramInfo$descriptor
+      ii <- unlist(stri_match_all(gfds, regex = "IPR\\d+"))
+      for (ipr in ii) {
+        link.ipr <- sprintf("<a href='http://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a>", ipr, ipr)
+        gfds <- gsub(ipr, link.ipr, gfds)
       }
-      if (length(interproIds) > 0) {
-        iprNames <- df.interpro$ENTRY_NAME[df.interpro$ENTRY_AC %in% interproIds]
-        iprInfo <- sprintf("<a href='http://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a> (%s)", interproIds, interproIds, iprNames)
-        familyInfo <- paste(familyInfo, paste(iprInfo, collapse = ", "), sep = "; ")
+      gg <- unlist(stri_match_all(gfds, regex = "GO:\\d+"))
+      for (go in gg) {
+        link.go <- sprintf("<a href='http://amigo.geneontology.org/amigo/term/%s' target='_blank'>%s</a>", go, go)
+        gfds <- gsub(go, link.go, gfds)
       }
-      goTerms <- character(0)
-      if (!is.null(phylogramInfo$go)) {
-        goTerms <- sort(unlist(strsplit(phylogramInfo$go, ",")))
-      }
-      if (length(goTerms) > 0) {
-        goNames <- df.goterms$name[df.goterms$GO.term %in% goTerms]
-        goInfo <- sprintf("<a href='http://amigo.geneontology.org/amigo/term/GO:%s' target='_blank'>GO:%s</a> (%s)", goTerms, goTerms, goNames)
-        familyInfo <- paste(familyInfo, paste(goInfo, collapse = ", "), sep = "; ")
-      }
-      output$phylogramFamilyInfo <- renderUI(HTML(sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, familyInfo)))
+
+      output$phylogramFamilyInfo <- renderUI(HTML(
+        sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, paste(gfds, collapse = "; "))
+      ))
       output$phylotreeHilited <- renderText(sprintf("Jump to highlighted feature: %s", phylogramInfo$seqNames))
       rv$tree <- phylogramInfo$tree
       js$setPhylotree(phylogramInfo$tree, "phylotree") # sets tree data for both phylotree and taxa chart

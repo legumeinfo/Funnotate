@@ -326,7 +326,7 @@ handleTaxaSelection = function(elementTag) {
 
   // Redraw MSA viewer and phylotree, filtered by selected taxa
   // (TODO: should really notify all registered event listeners)
-  drawMSAView("msa");
+  drawMSAView();
   drawPhylotree("phylotree");
 }
 
@@ -350,32 +350,21 @@ function doResize() {
 
 // =============================================================
 
+// msaView can be global, as long as there is only one MSA view per page
+msaView = null;
+
 // Send multiple sequence alignment to the MSA view
 shinyjs.setMSA = function(args) {
   // Replace special characters in sequence names to prevent FASTA parser from treating them as delimiters
   var seqs = msa.io.fasta.parse(args[0].replaceAll("|", ".").replaceAll(":", "."));
-  sessionStorage.setItem("msaSeqs", JSON.stringify(seqs));
   var elementId = args[1];
-  drawMSAView(elementId);
-}
+  var msaElement = document.getElementById(elementId);
+  msaElement.innerHTML = "";
 
-// Render the MSA view
-function drawMSAView(elementId) {
-  document.getElementById(elementId).innerHTML = "";
-
-  var taxa = sessionStorage.getItem("taxa");
-  if (taxa !== null) taxa = JSON.parse(taxa);
-
-  var seqs = JSON.parse(sessionStorage.getItem("msaSeqs"));
-  seqs = seqs.filter(function(seq) {
-    var gensp = seq.name.substring(0, 5);
-    if (gensp.startsWith("USR")) gensp = "USR";
-    return (taxa === null || taxa.includes(gensp));
-  });
-
-  var m = msa({
-    el: document.getElementById(elementId),
-    //bootstrapMenu: true, // TODO: get buttons working
+  // TODO: persist settings across sessions, possibly in localStorage?
+  msaView = msa({
+    el: msaElement,
+    bootstrapMenu: true,
     seqs: seqs,
     vis: {
       overviewbox: false,
@@ -387,7 +376,21 @@ function drawMSAView(elementId) {
       autoResize: true
     }
   });
-  m.render();
+
+  drawMSAView();
+}
+
+// Render the MSA view, filtered by selected taxa
+function drawMSAView() {
+  var taxa = sessionStorage.getItem("taxa");
+  if (taxa !== null) taxa = JSON.parse(taxa);
+  for (var s = 0; s < msaView.seqs.length; s++) {
+    var gensp = msaView.seqs.at(s).get('name').substring(0, 5);
+    if (gensp.startsWith("USR")) gensp = "USR";
+    msaView.seqs.at(s).set('hidden', !(taxa === null || taxa.includes(gensp)));
+  }
+
+  msaView.render();
 }
 
 // =============================================================

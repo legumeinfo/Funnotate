@@ -352,7 +352,8 @@ function doResize() {
 
 // Send multiple sequence alignment to the MSA view
 shinyjs.setMSA = function(args) {
-  var seqs = msa.io.fasta.parse(args[0]);
+  // Replace special characters in sequence names to prevent FASTA parser from treating them as delimiters
+  var seqs = msa.io.fasta.parse(args[0].replaceAll("|", ".").replaceAll(":", "."));
   sessionStorage.setItem("msaSeqs", JSON.stringify(seqs));
   var elementId = args[1];
   drawMSAView(elementId);

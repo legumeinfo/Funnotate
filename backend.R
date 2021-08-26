@@ -633,8 +633,7 @@ buildUserPhylogram <- function(job, family) {
       userPhylogramInfo$done <- TRUE
       return(userPhylogramInfo)
     }
-    # Replace '|' and ':' by '.' (why?)
-    seqNames <- gsub("[|:]", ".", seqNames)
+    seqNames <- gsub("[|:]", ".", seqNames) # to prevent FASTA parser from treating them as delimiters
     # ---
     fasta <- readAAStringSet(job$inputFile) # original or translated protein sequence
     allSeqNames <- names(fasta)

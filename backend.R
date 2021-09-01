@@ -618,6 +618,7 @@ buildUserPhylogram <- function(job, family) {
 
     # Find matching sequences for family, and write them to a temporary file to upload to Lorax
     df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+    ff.matches <- (df.summary.txt$Gene.Family == family)
     seqNames <- df.summary.txt$Query[ff.matches]
     numMatchingSequences <- length(seqNames)
     if (numMatchingSequences == 0) {

@@ -40,9 +40,8 @@ server <- function(input, output, session) {
         # Create Lorax tree for sequences that match the selected gene family
         existingJob <- readJob(urlFields$job)
         if (!is.null(existingJob)) {
+          whichPage <- "phylogram"
           loraxResults <- buildUserPhylogram(existingJob, urlFields$family)
-          whichPage <- "job"
-          displayJob(existingJob)
           displayPhylogram(existingJob, loraxResults)
         }
       }
@@ -273,37 +272,40 @@ server <- function(input, output, session) {
   displayPhylogram <- function(job, phylogramInfo, useVerticalLayout = TRUE) {
     if (is.null(phylogramInfo)) return()
     # Otherwise, display phylotree for selected gene family, with user sequence(s) inserted
+    if (!phylogramInfo$done) {
+      invalidateLater(3000) # put delay time in settings?
+    } else {
+      if (!is.null(phylogramInfo$tree)) output$hasPhylotree <- renderText("true")
+    }
 
     # Display status/error message, if any
-    output$phylogramStatus <- renderText({
-      if (!phylogramInfo$done) {
-        invalidateLater(3000) # put delay time in settings?
-        phylogramInfo <- buildUserPhylogram(job, phylogramInfo$family)
-      }
-      phylogramInfo$message
-    })
+    output$phylogramStatus <- renderText(phylogramInfo$message)
+
+    # Add links to gene family/IPR/GO descriptors
+    gfds <- phylogramInfo$descriptor
+    ii <- unlist(stri_match_all(gfds, regex = "IPR\\d+"))
+    for (ipr in ii) {
+      link.ipr <- sprintf("<a href='http://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a>", ipr, ipr)
+      gfds <- gsub(ipr, link.ipr, gfds)
+    }
+    gg <- unlist(stri_match_all(gfds, regex = "GO:\\d+"))
+    for (go in gg) {
+      link.go <- sprintf("<a href='http://amigo.geneontology.org/amigo/term/%s' target='_blank'>%s</a>", go, go)
+      gfds <- gsub(go, link.go, gfds)
+    }
+    output$phylogramFamilyInfo <- renderUI(HTML(
+      sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, paste(gfds, collapse = "; "))
+    ))
 
     if (!is.null(phylogramInfo$tree)) {
-      # Add links to gene family/IPR/GO descriptors
-      gfds <- phylogramInfo$descriptor
-      ii <- unlist(stri_match_all(gfds, regex = "IPR\\d+"))
-      for (ipr in ii) {
-        link.ipr <- sprintf("<a href='http://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a>", ipr, ipr)
-        gfds <- gsub(ipr, link.ipr, gfds)
-      }
-      gg <- unlist(stri_match_all(gfds, regex = "GO:\\d+"))
-      for (go in gg) {
-        link.go <- sprintf("<a href='http://amigo.geneontology.org/amigo/term/%s' target='_blank'>%s</a>", go, go)
-        gfds <- gsub(go, link.go, gfds)
-      }
-
-      output$phylogramFamilyInfo <- renderUI(HTML(
-        sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, paste(gfds, collapse = "; "))
-      ))
-      output$phylotreeHilited <- renderText(sprintf("Jump to highlighted feature: %s", phylogramInfo$seqNames))
+       output$phylotreeHilited <- renderUI(HTML(paste(
+        "Jump to highlighted feature:",
+        paste(sprintf("<br>&bull; <a href=''>%s</a>", phylogramInfo$seqNames), collapse = "")
+      )))
       rv$tree <- phylogramInfo$tree
       js$setPhylotree(phylogramInfo$tree, "phylotree") # sets tree data for both phylotree and taxa chart
     }
+
     if (!is.null(phylogramInfo$msa)) {
       js$setMSA(phylogramInfo$msa, "msa")
     }
@@ -317,6 +319,9 @@ server <- function(input, output, session) {
     layout <- stri_match_first(input$phylotreeLayout, regex = "^(.+) layout$")[, 2]
     js$setPhylotreeLayout(layout, "phylotree");
   })
+
+  output$hasPhylotree <- reactive("false")
+  outputOptions(output, "hasPhylotree", suspendWhenHidden = FALSE)
 
   output$displayGeneFamilyHelp <- reactive("false")
   output$displayTaxaAndLegend <- reactive("false")

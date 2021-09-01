@@ -114,26 +114,33 @@ ui <- fluidPage(
     textOutput("jobDuration"),
     conditionalPanel("output.jobStatus != 'running'",
       actionLink("jhome", "Start Over")
-    ),
+    )
+  ),
 
-    textOutput("phylogramStatus"),
+  # Phylogram page
+  conditionalPanel("output.page == 'phylogram'",
     h3("Phylogram"),
     htmlOutput("phylogramFamilyInfo"),
     p(""),
-    checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
-      choices = c("Gene Family Help", "Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
-    conditionalPanel("output.displayGeneFamilyHelp == 'true'", tags$div(id = "gfhelp")),
-    conditionalPanel("output.displayTaxaAndLegend == 'true'",
-      actionButton("resetTaxa", label = "Reset Taxa Selection"),
-      HTML("<svg id='taxa' height='300px'></svg>")
-    ),
-    conditionalPanel("output.displayMSA == 'true'", tags$div(id = "msa")),
+    textOutput("phylogramStatus"),
+    conditionalPanel("output.hasPhylotree == 'true'",
+      checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
+        choices = c("Gene Family Help", "Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
+      conditionalPanel("output.displayGeneFamilyHelp == 'true'", hr(), tags$div(id = "gfhelp")),
+      conditionalPanel("output.displayTaxaAndLegend == 'true'",
+        hr(),
+        actionButton("resetTaxa", label = "Reset Taxa Selection"),
+        HTML("<svg id='taxa' height='300px'></svg>")
+      ),
+      conditionalPanel("output.displayMSA == 'true'", hr(), tags$div(id = "msa")),
 
-    radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
-    textOutput("phylotreeHilited"), #, "Jump to highlighted feature: ..."),
-    HTML("<svg id='phylotreeDistanceScale'></svg>"),
-    tags$div(id = "phylotree"),
-    hr()
+      hr(),
+      radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
+      htmlOutput("phylotreeHilited"),
+      HTML("<svg id='phylotreeDistanceScale'></svg>"),
+      tags$div(id = "phylotree"),
+      hr()
+    )
   )
 )
 

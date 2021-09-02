@@ -350,8 +350,8 @@ function doResize() {
 
 // =============================================================
 
-// msaView can be global, as long as there is only one MSA view per page
-msaView = null;
+// MSA view can be global, as long as there is only one per page
+gMsaView = null;
 
 // Send multiple sequence alignment to the MSA view
 shinyjs.setMSA = function(args) {
@@ -362,7 +362,7 @@ shinyjs.setMSA = function(args) {
   msaElement.innerHTML = "";
 
   // TODO: persist settings across sessions, possibly in localStorage?
-  msaView = msa({
+  gMsaView = msa({
     el: msaElement,
     bootstrapMenu: true,
     seqs: seqs,
@@ -384,13 +384,13 @@ shinyjs.setMSA = function(args) {
 function drawMSAView() {
   var taxa = sessionStorage.getItem("taxa");
   if (taxa !== null) taxa = JSON.parse(taxa);
-  for (var s = 0; s < msaView.seqs.length; s++) {
-    var gensp = msaView.seqs.at(s).get('name').substring(0, 5);
+  for (var s = 0; s < gMsaView.seqs.length; s++) {
+    var gensp = gMsaView.seqs.at(s).get('name').substring(0, 5);
     if (gensp.startsWith("USR")) gensp = "USR";
-    msaView.seqs.at(s).set('hidden', !(taxa === null || taxa.includes(gensp)));
+    gMsaView.seqs.at(s).set('hidden', !(taxa === null || taxa.includes(gensp)));
   }
 
-  msaView.render();
+  gMsaView.render();
 }
 
 // =============================================================

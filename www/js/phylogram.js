@@ -135,38 +135,41 @@ shinyjs.setPhylotreeLayout = function(args) {
   drawPhylotree(elementId);
 }
 
+// Phylotree can be global, as long as there is only one per page
+gPhylotree = null;
+
 // Render the phylotree
 function drawPhylotree(elementId) {
   // read the (Newick) tree
   var newick = sessionStorage.getItem("newickTree");
-  var tree = tnt.tree().data(tnt.tree.parse_newick(newick));
+  gPhylotree = tnt.tree().data(tnt.tree.parse_newick(newick));
 
   // filter by taxa
   var taxa = sessionStorage.getItem("taxa");
   if (taxa !== null) {
     taxa = JSON.parse(taxa);
-    var leaves = tree.root().find_all(function(node) {
+    var leaves = gPhylotree.root().find_all(function(node) {
       if (!node.is_leaf()) return false;
       var gensp = node.node_name().substring(0, 5);
       if (gensp.startsWith("USR")) gensp = "USR";
       return taxa.includes(gensp);
     });
-    var subtree = tree.root().subtree(leaves);
-    tree.data(subtree.data());
+    var subtree = gPhylotree.root().subtree(leaves);
+    gPhylotree.data(subtree.data());
   }
 
   // set tree layout
   var width = window.innerWidth - 200;
   var layout = sessionStorage.getItem("treeLayout");
   if (layout === "Radial") {
-    tree.layout(tnt.tree.layout.radial().width(width));
+    gPhylotree.layout(tnt.tree.layout.radial().width(width));
   } else {
     // "Vertical" or null
-    tree.layout(tnt.tree.layout.vertical().width(width));
+    gPhylotree.layout(tnt.tree.layout.vertical().width(width));
   }
 
   // set node colors and labels
-  tree.node_display(tnt.tree.node_display.circle()
+  gPhylotree.node_display(tnt.tree.node_display.circle()
     .size(6)
     .fill(function(node) {
       var gen = node.node_name().substring(0, 3)
@@ -178,7 +181,7 @@ function drawPhylotree(elementId) {
       return 'white';
     })
   );
-  tree.label(tnt.tree.label.text()
+  gPhylotree.label(tnt.tree.label.text()
     .height(16)
     .text(function(node) {
       if (!node.is_leaf()) return('');
@@ -188,7 +191,7 @@ function drawPhylotree(elementId) {
 
   var treeDiv = document.getElementById(elementId);
   treeDiv.innerHTML = ""; // to clear it
-  tree(treeDiv);
+  gPhylotree(treeDiv);
 
   // use TnT Tree API to calculate intergenic distance over some screen distance.
   $("#phylotreeDistanceScale").empty(); // to clear it
@@ -198,8 +201,39 @@ function drawPhylotree(elementId) {
     .append('g')
     .attr('transform', 'translate(20, 20)')
     .attr('class', 'x axis')
-    .call(getXAxis(tree, width)
+    .call(getXAxis(gPhylotree, width)
   );
+
+  // Highlight user sequences
+  // (wrap in timeout in order to wait to render the tree before computing label bounding boxes)
+  setTimeout(function() {
+    d3.selectAll('text.tnt_tree_label')
+      .filter((d) => d.name.toLowerCase().startsWith('usr'))
+      .each(function(d) {
+        d.bbox = this.getBBox();
+      });
+    var top = Infinity;
+    d3.selectAll('g.tnt_tree_node')
+      .filter((d) => d.name.toLowerCase().startsWith('usr'))
+      .insert('svg:rect', ':first-child')
+      .attr('x', (d) => {
+        if (d.textAnchor === 'end') {
+          // textAnchor was set dynamically for the radial layout
+          return d.bbox.x + d.bbox.width + 10;
+        }
+        return d.bbox.x + 10;
+      })
+      .attr('y', (d) => d.bbox.y/2)
+      .attr('width', (d) => d.bbox.width + 2)
+      .attr('height', (d) => d.bbox.height + 1)
+      .attr('class', 'hilite-node')
+      .each(function() {
+        var offset = $(this).offset();
+        if (offset.top > 0 && offset.top < top) {
+          top = offset.top;
+        }
+      });
+  }, 1000);
 }
 
 function getXAxis(tree, width) {
@@ -212,6 +246,17 @@ function getXAxis(tree, width) {
     .ticks(12)
     .orient('bottom');
   return axis;
+}
+
+// User clicked on link to sequence -> scroll to its phylotree node
+function onScrollToHilite(seqName) {
+  var node = gPhylotree.root().find_node(node => {
+    return node.node_name() === seqName;
+  });
+  var nodeId = node.property('_id');
+  var selector = '#tnt_tree_node_phylotree_' + nodeId;
+  var offset = $(selector).offset();
+  $('html,body').scrollTop(offset.top - 100);
 }
 
 // =============================================================

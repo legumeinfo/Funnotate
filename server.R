@@ -300,7 +300,7 @@ server <- function(input, output, session) {
     if (!is.null(phylogramInfo$tree)) {
        output$phylotreeHilited <- renderUI(HTML(paste(
         "Jump to highlighted feature:",
-        paste(sprintf("<br>&bull; <a href=''>%s</a>", phylogramInfo$seqNames), collapse = "")
+        paste(sprintf("<br>&bull; <a onclick='onScrollToHilite(\"%s\");'>%s</a>", phylogramInfo$seqNames, phylogramInfo$seqNames), collapse = "")
       )))
       rv$tree <- phylogramInfo$tree
       js$setPhylotree(phylogramInfo$tree, "phylotree") # sets tree data for both phylotree and taxa chart

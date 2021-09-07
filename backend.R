@@ -572,7 +572,7 @@ buildUserPhylogram <- function(job, family) {
   # output: append user phylogram information or status/error messages, as appropriate
   userPhylogramInfo <- list(family = family, done = FALSE)
   i.match <- which(grepl(family, df.geneFamilies$name))
-  userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "", df.geneFamilies$descriptor[i.match])
+  userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "unknown", df.geneFamilies$descriptor[i.match])
 
   # Check status of phylotree computation
   family_job <- paste(family, job$id, sep = ".")

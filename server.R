@@ -283,12 +283,12 @@ server <- function(input, output, session) {
 
     # Add links to gene family/IPR/GO descriptors
     gfds <- phylogramInfo$descriptor
-    ii <- unlist(stri_match_all(gfds, regex = "IPR\\d+"))
+    ii <- na.omit(unlist(stri_match_all(gfds, regex = "IPR\\d+")))
     for (ipr in ii) {
       link.ipr <- sprintf("<a href='http://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a>", ipr, ipr)
       gfds <- gsub(ipr, link.ipr, gfds)
     }
-    gg <- unlist(stri_match_all(gfds, regex = "GO:\\d+"))
+    gg <- na.omit(unlist(stri_match_all(gfds, regex = "GO:\\d+")))
     for (go in gg) {
       link.go <- sprintf("<a href='http://amigo.geneontology.org/amigo/term/%s' target='_blank'>%s</a>", go, go)
       gfds <- gsub(go, link.go, gfds)

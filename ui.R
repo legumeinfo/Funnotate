@@ -5,7 +5,7 @@ library(DT)
 
 ui <- fluidPage(
   useShinyjs(),
-  # Chroma
+  # Chroma.js
   singleton(tags$head(tags$script(src='https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.2/chroma.min.js', type='text/javascript'))),
   # TnT Tree
   singleton(tags$head(tags$link(href='http://tntvis.github.io/tnt.tree/build/tnt.tree.css', rel='stylesheet', type='text/css'))),
@@ -127,18 +127,37 @@ ui <- fluidPage(
       checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
         choices = c("Gene Family Help", "Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
       conditionalPanel("output.displayGeneFamilyHelp == 'true'", hr(), tags$div(id = "gfhelp")),
+      # Taxa chart
       conditionalPanel("output.displayTaxaAndLegend == 'true'",
         hr(),
         actionButton("resetTaxa", label = "Reset Taxa Selection"),
-        HTML("<svg id='taxa' height='300px'></svg>")
+        HTML("<svg id='taxa' height='300px'></svg>"),
+        HTML(paste("<p style='font-size:9px; text-align: right;'>",
+          "<a href='https://nvd3.org/' target='_blank'>NVD3</a>",
+          " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
+          "</p>"
+        ))
       ),
-      conditionalPanel("output.displayMSA == 'true'", hr(), tags$div(id = "msa")),
-
+      # MSA view
+      conditionalPanel("output.displayMSA == 'true'",
+        hr(),
+        tags$div(id = "msa"),
+        HTML(paste("<p style='font-size:9px; text-align: right;'>",
+          "<a href='https://github.com/wilzbach/msa/' target='_blank'>MSA Viewer</a>",
+          "</p>"
+        ))
+      ),
+      # Phylotree
       hr(),
       radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
       htmlOutput("phylotreeHilited"),
       HTML("<svg id='phylotreeDistanceScale'></svg>"),
       tags$div(id = "phylotree"),
+      HTML(paste("<p style='font-size:9px; text-align: right;'>",
+        "<a href='https://tntvis.github.io/tnt.tree/' target='_blank'>TnT Tree</a>",
+        " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
+        "</p>"
+      )),
       hr()
     )
   )

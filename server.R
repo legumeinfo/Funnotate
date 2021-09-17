@@ -323,17 +323,12 @@ server <- function(input, output, session) {
   output$hasPhylotree <- reactive("false")
   outputOptions(output, "hasPhylotree", suspendWhenHidden = FALSE)
 
-  output$displayGeneFamilyHelp <- reactive("false")
   output$displayTaxaAndLegend <- reactive("false")
   output$displayMSA <- reactive("false")
-  outputOptions(output, "displayGeneFamilyHelp", suspendWhenHidden = FALSE)
   outputOptions(output, "displayTaxaAndLegend", suspendWhenHidden = FALSE)
   outputOptions(output, "displayMSA", suspendWhenHidden = FALSE)
 
   observeEvent(input$phylogramToggleDisplay, {
-    output$displayGeneFamilyHelp <- renderText(
-      ifelse("Gene Family Help" %in% input$phylogramToggleDisplay, "true", "false")
-    )
     output$displayTaxaAndLegend <- renderText(
       ifelse("Taxa and Legend" %in% input$phylogramToggleDisplay, "true", "false")
     )

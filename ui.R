@@ -124,9 +124,9 @@ ui <- fluidPage(
     p(""),
     textOutput("phylogramStatus"),
     conditionalPanel("output.hasPhylotree == 'true'",
+      HTML("<a href=https://legumeinfo.org/search/phylotree/userinfo target=_blank>Gene Family Help</a>"),
       checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
-        choices = c("Gene Family Help", "Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
-      conditionalPanel("output.displayGeneFamilyHelp == 'true'", hr(), tags$div(id = "gfhelp")),
+        choices = c("Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
       # Taxa chart
       conditionalPanel("output.displayTaxaAndLegend == 'true'",
         hr(),

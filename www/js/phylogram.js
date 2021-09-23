@@ -3,6 +3,7 @@
 var DEFAULT_COLOR = '#d3d3d3';
 
 var OVERRIDES = {
+  'arabidopsis thaliana': DEFAULT_COLOR, // otherwise conflicts with ara = Arachis
   'arachis ipaensis': '#aaab00',
   '*user sequences': '#990000' // TODO: use genusToColor?
 }

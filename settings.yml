@@ -2,6 +2,9 @@
 # Funnotate
 ############
 
+# Table of gene families, from LIS data store
+gene_families_data: https://legumeinfo.org/data/v2/LEGUMES/Fabaceae/genefamilies/legume.genefam.fam1.M65K/legume.genefam.fam1.M65K.info_annot_ahrd.tsv.gz
+
 # General settings
 num_threads: 5
 # error_log: temp/funnotate.err

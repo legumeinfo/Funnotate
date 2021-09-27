@@ -14,7 +14,7 @@ settings <- read_yaml("settings.yml")
 # Read table of gene families
 getGeneFamilies <- function() {
   temp <- tempfile()
-  download.file("https://v1.legumefederation.org/data/v2/LEGUMES/Fabaceae/genefamilies/legume.genefam.fam1.M65K/legume.genefam.fam1.M65K.info_annot_ahrd.tsv.gz", temp)
+  download.file(settings$gene_families_data, temp)
   df.gf <- read.table(gzfile(temp, "rt"), header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
   unlink(temp)
   names(df.gf) <- c("name", "descriptor")

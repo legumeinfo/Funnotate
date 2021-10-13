@@ -119,6 +119,16 @@ function taxonToColor(taxon) {
 
 // =============================================================
 
+const LINKOUTS_BASE_URL = 'https://legumeinfo.org';
+
+function lineWithLink(href, text) {
+  return '<p><a href="' + href + '" target=_blank>' + text + '</a></p>';
+}
+
+var newickModule = require('biojs-io-newick');
+
+// =============================================================
+
 // Send a tree (in Newick format) to the phylotree chart
 shinyjs.setPhylotree = function(args) {
   sessionStorage.setItem("newickTree", args[0]);
@@ -138,6 +148,7 @@ shinyjs.setPhylotreeLayout = function(args) {
 
 // Phylotree can be global, as long as there is only one per page
 gPhylotree = null;
+gSelectedNode = null;
 
 // Render the phylotree
 function drawPhylotree(elementId) {
@@ -177,14 +188,15 @@ function drawPhylotree(elementId) {
       if (gen == 'USR') return(genusToColor[gen])
       var gensp = node.node_name().substring(0, 5)
       if (gensp in genspToTaxon) return(taxonToColor(genspToTaxon[gensp]))
-      else if (node.is_leaf()) return(DEFAULT_COLOR);
-      else if (node.root_dist() == 0) return('black');
-      return 'white';
+      else if (node.is_leaf() && !node.is_collapsed()) return(DEFAULT_COLOR);
+      else if (isRootNode(node)) return 'black';
+      return 'white'; // internal nodes
     })
   );
   gPhylotree.label(tnt.tree.label.text()
     .height(16)
     .text(function(node) {
+      if (node.is_collapsed()) return(node.get_all_leaves(true).length + ' leaf nodes');
       if (!node.is_leaf()) return('');
       return node.node_name();
     })
@@ -194,6 +206,19 @@ function drawPhylotree(elementId) {
   treeDiv.innerHTML = ""; // to clear it
   gPhylotree(treeDiv);
 
+  gPhylotree.on('click', node => onTreeNodeClick(node));
+
+  drawDistanceScale(width);
+
+  // wrap in timeout in order to wait to render the tree before computing label bounding boxes
+  setTimeout(highlightUserSequences, 1000);
+}
+
+function isRootNode(node) {
+  return node.root_dist() == 0;
+}
+
+function drawDistanceScale(width) {
   // use TnT Tree API to calculate intergenic distance over some screen distance.
   $("#phylotreeDistanceScale").empty(); // to clear it
   d3.select("#phylotreeDistanceScale")
@@ -204,37 +229,35 @@ function drawPhylotree(elementId) {
     .attr('class', 'x axis')
     .call(getXAxis(gPhylotree, width)
   );
+}
 
-  // Highlight user sequences
-  // (wrap in timeout in order to wait to render the tree before computing label bounding boxes)
-  setTimeout(function() {
-    d3.selectAll('text.tnt_tree_label')
-      .filter((d) => d.name.toLowerCase().startsWith('usr'))
-      .each(function(d) {
-        d.bbox = this.getBBox();
-      });
-    var top = Infinity;
-    d3.selectAll('g.tnt_tree_node')
-      .filter((d) => d.name.toLowerCase().startsWith('usr'))
-      .insert('svg:rect', ':first-child')
-      .attr('x', (d) => {
-        if (d.textAnchor === 'end') {
-          // textAnchor was set dynamically for the radial layout
-          return d.bbox.x + d.bbox.width + 10;
-        }
-        return d.bbox.x + 10;
-      })
-      .attr('y', (d) => d.bbox.y/2)
-      .attr('width', (d) => d.bbox.width + 2)
-      .attr('height', (d) => d.bbox.height + 1)
-      .attr('class', 'hilite-node')
-      .each(function() {
-        var offset = $(this).offset();
-        if (offset.top > 0 && offset.top < top) {
-          top = offset.top;
-        }
-      });
-  }, 1000);
+function highlightUserSequences() {
+  d3.selectAll('text.tnt_tree_label')
+    .filter((d) => d.name.toLowerCase().startsWith('usr'))
+    .each(function(d) {
+      d.bbox = this.getBBox();
+    });
+  var top = Infinity;
+  d3.selectAll('g.tnt_tree_node')
+    .filter((d) => d.name.toLowerCase().startsWith('usr'))
+    .insert('svg:rect', ':first-child')
+    .attr('x', (d) => {
+      if (d.textAnchor === 'end') {
+        // textAnchor was set dynamically for the radial layout
+        return d.bbox.x + d.bbox.width + 10;
+      }
+      return d.bbox.x + 10;
+    })
+    .attr('y', (d) => d.bbox.y/2)
+    .attr('width', (d) => d.bbox.width + 2)
+    .attr('height', (d) => d.bbox.height + 1)
+    .attr('class', 'hilite-node')
+    .each(function() {
+      var offset = $(this).offset();
+      if (offset.top > 0 && offset.top < top) {
+        top = offset.top;
+      }
+    });
 }
 
 function getXAxis(tree, width) {
@@ -248,6 +271,10 @@ function getXAxis(tree, width) {
     .orient('bottom');
   return axis;
 }
+function updateXAxis() {
+  d3.selectAll('#phylotreeDistanceScale g.x.axis')
+    .call(getXAxis(gPhylotree, window.innerWidth - 200));
+}
 
 // User clicked on link to sequence -> scroll to its phylotree node
 function onScrollToHilite(seqName) {
@@ -258,6 +285,124 @@ function onScrollToHilite(seqName) {
   var selector = '#tnt_tree_node_phylotree_' + nodeId;
   var offset = $(selector).offset();
   $('html,body').scrollTop(offset.top - 100);
+}
+
+function showDialog(title, content) {
+  $('<div id="dlg1">' + content + '</div>').dialog({
+    title: title,
+    width: 512,
+    modal: true
+  });
+}
+
+// User clicked a phylotree node (internal or leaf)
+function onTreeNodeClick(node) {
+  const isCollapsed = node.is_collapsed();
+  if (!isCollapsed && node.is_leaf()) {
+    // Leaf nodes: post dialog with linkouts
+    var node_name = node.node_name();
+    var gensp = node_name.substring(0, 5);
+    if (gensp in genspToTaxon) {
+      var taxon = genspToTaxon[gensp];
+      taxon = taxon.split(' ');
+      var genus = taxon[0];
+      var species = taxon[1];
+      var url = LINKOUTS_BASE_URL + '/phylotree_links/' + genus + '/' + species + '/' + node_name + '/json';
+      $.getJSON(url, function(data) {
+        var content = '';
+        if (data.length > 0) {
+          $.each(data, function(d, obj) {
+            content += lineWithLink(obj.href, obj.text);
+          });
+        } else {
+          content += 'No linkouts found.';
+        }
+/*
+        // for the organism and feature links (unused)
+        content += lineWithLink(LINKOUTS_BASE_URL + '/organism/' + genus + '/' + species,
+          'View organism: ' + genus + ' ' + species); // + ' (' + common_name + ')'
+        content += lineWithLink(LINKOUTS_BASE_URL + '/node/' + node.data()._id,
+          'View feature: ' + node_name);
+*/
+        showDialog(node_name, content);
+      });
+    } else {
+      showDialog(node_name, '<p>User sequence, no linkouts.</p>');
+    }
+  } else {
+    // Internal node actions
+    gSelectedNode = node;
+    var internalNodeActions = '';
+    var toggleText = (isCollapsed ? 'Expand' : 'Collapse');
+    internalNodeActions += '<p><a onclick="doCollapseExpand();">' + toggleText + ' subtree at this node</a></p>';
+    if (!isCollapsed) internalNodeActions += '<p><strike>Focus on subtree at this node</strike></p>';
+    internalNodeActions += '<p><a onclick="doExport();">Export subtree in Newick format</a></p>';
+    var url = LINKOUTS_BASE_URL + '/famreps_links';
+    var query = 'famreps=' + gSelectedNode.get_all_leaves(true).map(n => n.node_name()).join(',');
+    // add internal node linkouts, if any
+    $.post({
+      url: url,
+      data: query,
+      dataType: 'json'
+    })
+    .done(function(data) {
+      $.each(data, function(d, obj) {
+        internalNodeActions += lineWithLink(obj.href, obj.text);
+      });
+    })
+    .always(function() {
+      showDialog('Interior node', internalNodeActions);
+    });
+  }
+}
+
+function doCollapseExpand() {
+  $('#dlg1').dialog('destroy');
+
+  gSelectedNode.toggle();
+  gPhylotree.update();
+  setTimeout(() => { updateXAxis(); }, 500);
+  highlightUserSequences();
+
+  gSelectedNode = null;
+}
+
+function doExport() {
+  $('#dlg1').dialog('destroy');
+
+  var content = newickModule.parse_json(gSelectedNode.data());
+  $('<div id="dlg2" style="font-size: 12px">' + content + '</div>').dialog({
+    title: 'Subtree in Newick format',
+    width: 600,
+    height: 200,
+    modal: true,
+    buttons: [
+      {
+        text: 'Copy to Clipboard',
+        click: function() {
+          var textArea = document.createElement("textarea");
+          textArea.value = content;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-999999px";
+          textArea.style.top = "-999999px";
+          this.appendChild(textArea); // make it a child of the dialog to preserve modality
+          textArea.select();
+          return new Promise((res, rej) => {
+            document.execCommand('copy') ? res() : rej();
+            textArea.remove();
+          });
+        }
+      },
+      {
+        text: 'Dismiss',
+        click: function() {
+          $(this).dialog('close');
+        }
+      }
+    ]
+  });
+
+  gSelectedNode = null;
 }
 
 // =============================================================

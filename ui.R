@@ -17,6 +17,11 @@ ui <- fluidPage(
   # MSA Viewer
   singleton(tags$head(tags$link(href='https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.min.gz.css', rel='stylesheet', type='text/css'))),
   singleton(tags$head(tags$script(src='https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.min.gz.js', type='text/javascript'))),
+  # jQuery UI (for dialogs)
+  singleton(tags$head(tags$link(href='https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css', rel='stylesheet', type='text/css'))),
+  singleton(tags$head(tags$script(src='https://code.jquery.com/ui/1.12.1/jquery-ui.min.js', type='text/javascript'))),
+  # biojs-io-newick (for exporting tree in Newick format)
+  singleton(tags$head(tags$script(src='js/biojs-io-newick.min.js', type='text/javascript'))),
   # Ours (for phylotree and distance scale)
   singleton(tags$head(tags$link(href='css/phylogram.css', rel='stylesheet', type='text/css'))),
   # singleton(tags$head(tags$script(src='js/phylogram.js', type='text/javascript'))),
@@ -155,7 +160,9 @@ ui <- fluidPage(
       tags$div(id = "phylotree"),
       HTML(paste("<p style='font-size:9px; text-align: right;'>",
         "<a href='https://tntvis.github.io/tnt.tree/' target='_blank'>TnT Tree</a>",
+        " &bull; <a href='https://github.com/daviddao/biojs-io-newick'>biojs-io-newick</a>",
         " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
+        " &bull; <a href='https://jqueryui.com' target='_blank'>jQuery UI</a>",
         "</p>"
       )),
       hr()

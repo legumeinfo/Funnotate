@@ -564,9 +564,12 @@ shinyjs.setMSA = function(args) {
     zoomer: {
       labelNameLength: 150,
       labelFontsize: 9,
-      autoResize: true
+      autoResize: true // only works for width
     }
   });
+  // to effect autoResize for height (= show more or less rows when manually resizing)
+  gMsaView.g.zoomer.autoHeight();
+  $('#msa').height(225);
 
   drawMSAView();
 }

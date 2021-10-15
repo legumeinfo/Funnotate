@@ -146,7 +146,7 @@ ui <- fluidPage(
       # MSA view
       conditionalPanel("output.displayMSA == 'true'",
         hr(),
-        tags$div(id = "msa"),
+        tags$div(id = "msa", style = "resize: vertical; overflow: auto;"),
         HTML(paste("<p style='font-size:9px; text-align: right;'>",
           "<a href='https://github.com/wilzbach/msa/' target='_blank'>MSA Viewer</a>",
           "</p>"

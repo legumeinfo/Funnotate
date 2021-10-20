@@ -323,6 +323,18 @@ server <- function(input, output, session) {
   output$hasPhylotree <- reactive("false")
   outputOptions(output, "hasPhylotree", suspendWhenHidden = FALSE)
 
+  output$focusOnSubtree <- reactive("false")
+  outputOptions(output, "focusOnSubtree", suspendWhenHidden = FALSE)
+  observeEvent(input$toggleSubtree, {
+    output$focusOnSubtree <- renderText(ifelse(input$toggleSubtree, "true", "false"))
+  })
+  observeEvent(input$showSingletonNodes, {
+    js$showSingletonNodes(input$showSingletonNodes, "phylotree")
+  })
+  observeEvent(input$resetSubtreeFocus, {
+    js$clearSubtreeFocus("phylotree")
+  })
+
   output$displayTaxaAndLegend <- reactive("false")
   output$displayMSA <- reactive("false")
   outputOptions(output, "displayTaxaAndLegend", suspendWhenHidden = FALSE)

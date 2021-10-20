@@ -131,6 +131,7 @@ var newickModule = require('biojs-io-newick');
 
 // Send a tree (in Newick format) to the phylotree chart
 shinyjs.setPhylotree = function(args) {
+  sessionStorage.clear();
   sessionStorage.setItem("newickTree", args[0]);
   var elementId = args[1];
   drawPhylotree(elementId);
@@ -160,13 +161,14 @@ function drawPhylotree(elementId) {
   var taxa = sessionStorage.getItem("taxa");
   if (taxa !== null) {
     taxa = JSON.parse(taxa);
-    var leaves = gPhylotree.root().find_all(function(node) {
+    var rootNode = (gSelectedNode == null ? gPhylotree.root() : gSelectedNode);
+    var leaves = rootNode.find_all(function(node) {
       if (!node.is_leaf()) return false;
       var gensp = node.node_name().substring(0, 5);
       if (gensp.startsWith("USR")) gensp = "USR";
       return taxa.includes(gensp);
     });
-    var subtree = gPhylotree.root().subtree(leaves);
+    var subtree = gPhylotree.root().subtree(leaves, true);
     gPhylotree.data(subtree.data());
   }
 
@@ -181,8 +183,12 @@ function drawPhylotree(elementId) {
   }
 
   // set node colors and labels
+  var ssn = sessionStorage.getItem("showSingletonNodes");
+  var showSingletonNodes = (ssn == undefined || ssn == 'true');
   gPhylotree.node_display(tnt.tree.node_display.circle()
-    .size(6)
+    .size(function(node) {
+      return (!isRootNode(node) && isSingletonNode(node) && !showSingletonNodes) ? 0 : 6;
+    })
     .fill(function(node) {
       var gen = node.node_name().substring(0, 3)
       if (gen == 'USR') return(genusToColor[gen])
@@ -190,6 +196,7 @@ function drawPhylotree(elementId) {
       if (gensp in genspToTaxon) return(taxonToColor(genspToTaxon[gensp]))
       else if (node.is_leaf() && !node.is_collapsed()) return(DEFAULT_COLOR);
       else if (isRootNode(node)) return 'black';
+      else if (isSingletonNode(node)) return 'gray';
       return 'white'; // internal nodes
     })
   );
@@ -216,6 +223,10 @@ function drawPhylotree(elementId) {
 
 function isRootNode(node) {
   return node.root_dist() == 0;
+}
+function isSingletonNode(node) {
+  var children = node.children();
+  return children != undefined && children.length == 1;
 }
 
 function drawDistanceScale(width) {
@@ -335,7 +346,7 @@ function onTreeNodeClick(node) {
     var internalNodeActions = '';
     var toggleText = (isCollapsed ? 'Expand' : 'Collapse');
     internalNodeActions += '<p><a onclick="doCollapseExpand();">' + toggleText + ' subtree at this node</a></p>';
-    if (!isCollapsed) internalNodeActions += '<p><strike>Focus on subtree at this node</strike></p>';
+    if (!isCollapsed) internalNodeActions += '<p><a onclick="doFocus();">Focus on subtree at this node</a></p>';
     internalNodeActions += '<p><a onclick="doExport();">Export subtree in Newick format</a></p>';
     var url = LINKOUTS_BASE_URL + '/famreps_links';
     var query = 'famreps=' + gSelectedNode.get_all_leaves(true).map(n => n.node_name()).join(',');
@@ -365,6 +376,41 @@ function doCollapseExpand() {
   highlightUserSequences();
 
   gSelectedNode = null;
+}
+
+function doFocus() {
+  $('#dlg1').dialog('destroy');
+
+  Shiny.setInputValue('toggleSubtree', true);
+
+  var subtree = gPhylotree.root().subtree(gSelectedNode.get_all_leaves(true), true);
+  var newick = newickModule.parse_json(subtree.data());
+  sessionStorage.setItem("subtree", newick);
+  sessionStorage.setItem("taxa", JSON.stringify(Object.keys(countTaxa(newick)).map(taxonToGensp)));
+
+  setTaxa("taxa");
+  drawMSAView();
+  drawPhylotree("phylotree");
+
+//  gSelectedNode = null; // we need it to maintain the focused subtree
+}
+
+shinyjs.showSingletonNodes = function(args) {
+  sessionStorage.setItem("showSingletonNodes", args[0]);
+  var elementId = args[1];
+  drawPhylotree(elementId);
+}
+shinyjs.clearSubtreeFocus = function(args) {
+  var elementId = args[0];
+  gPhylotree = null;
+  gSelectedNode = null;
+  Shiny.setInputValue('toggleSubtree', false);
+  sessionStorage.removeItem("subtree");
+  sessionStorage.removeItem("taxa");
+
+  setTaxa("taxa");
+  drawMSAView();
+  drawPhylotree(elementId);
 }
 
 function doExport() {
@@ -412,7 +458,8 @@ function setTaxa(elementId) {
   var elementTag = "#" + elementId;
 
   // read the (Newick) tree
-  var newick = sessionStorage.getItem("newickTree");
+  var newick = sessionStorage.getItem("subtree");
+  if (newick == null) newick = sessionStorage.getItem("newickTree");
   var count = countTaxa(newick);
 
   // read currently selected taxa
@@ -509,7 +556,7 @@ handleTaxaSelection = function(elementTag) {
       taxa.push(taxonToGensp(series.label));
     }
   });
-  if (taxa.length == data.length) {
+  if (sessionStorage.getItem("subtree") == null && taxa.length == data.length) {
     sessionStorage.removeItem("taxa");
   } else {
     sessionStorage.setItem("taxa", JSON.stringify(taxa));
@@ -574,14 +621,19 @@ shinyjs.setMSA = function(args) {
   drawMSAView();
 }
 
-// Render the MSA view, filtered by selected taxa
+// Render the MSA view, filtered by selected taxa and subtree
 function drawMSAView() {
   var taxa = sessionStorage.getItem("taxa");
   if (taxa !== null) taxa = JSON.parse(taxa);
   for (var s = 0; s < gMsaView.seqs.length; s++) {
-    var gensp = gMsaView.seqs.at(s).get('name').substring(0, 5);
+    var s_name = gMsaView.seqs.at(s).get('name');
+    var gensp = s_name.substring(0, 5);
     if (gensp.startsWith("USR")) gensp = "USR";
-    gMsaView.seqs.at(s).set('hidden', !(taxa === null || taxa.includes(gensp)));
+
+    var visible = (taxa === null || taxa.includes(gensp));
+    var isAncestor = (gSelectedNode != null && gSelectedNode.find_node_by_name(s_name) != null);
+    visible &&= (gSelectedNode === null || isAncestor);
+    gMsaView.seqs.at(s).set('hidden', !visible);
   }
 
   gMsaView.render();

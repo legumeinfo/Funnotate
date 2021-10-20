@@ -26,7 +26,7 @@ ui <- fluidPage(
   singleton(tags$head(tags$link(href='css/phylogram.css', rel='stylesheet', type='text/css'))),
   # singleton(tags$head(tags$script(src='js/phylogram.js', type='text/javascript'))),
   extendShinyjs(script = "www/js/phylogram.js",
-    functions = c("setPhylotree", "setPhylotreeLayout", "resetTaxa", "setMSA")
+    functions = c("setPhylotree", "setPhylotreeLayout", "showSingletonNodes", "clearSubtreeFocus", "resetTaxa", "setMSA")
   ),
 
   # base HTML
@@ -155,6 +155,11 @@ ui <- fluidPage(
       # Phylotree
       hr(),
       radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
+      conditionalPanel("output.focusOnSubtree == 'true'",
+        HTML("You have focused on a subtree."),
+        actionButton("resetSubtreeFocus", label = "Reset to full tree"),
+        div(style = "display: inline-block; vertical-align: middle;", checkboxInput("showSingletonNodes", label = "Show singleton nodes", value = TRUE))
+      ),
       htmlOutput("phylotreeHilited"),
       HTML("<svg id='phylotreeDistanceScale'></svg>"),
       tags$div(id = "phylotree"),

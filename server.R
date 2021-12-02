@@ -250,7 +250,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$job, {
     # Prepare and run the job
-    job <- createNewJob(rv$upload, isolate(input$useInterpro))
+    job <- createNewJob(rv$upload, input$useInterpro)
     jobId <- job$id
     # For now (promises 1.0.1), use future() but eventually (promises 1.2.0) upgrade to future_promise()
     result <- future({

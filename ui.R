@@ -24,7 +24,7 @@ ui <- fluidPage(
   singleton(tags$head(tags$script(src='js/biojs-io-newick.min.js', type='text/javascript'))),
   # Ours (for phylotree and distance scale)
   singleton(tags$head(tags$link(href='css/phylogram.css', rel='stylesheet', type='text/css'))),
-  # singleton(tags$head(tags$script(src='js/phylogram.js', type='text/javascript'))),
+  singleton(tags$head(tags$script(src='js/phylogram.js', type='text/javascript'))),
   extendShinyjs(script = "www/js/phylogram.js",
     functions = c("setPhylotree", "setPhylotreeLayout", "showSingletonNodes", "clearSubtreeFocus", "resetTaxa", "setMSA")
   ),

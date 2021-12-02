@@ -133,6 +133,17 @@ server <- function(input, output, session) {
     }
     clearJobPage()
 
+    if (!is.null(job$geneFamily)) {
+      # go straight to phylogram without computing gene family
+      output$page <- reactive({
+        loraxResults <- buildUserPhylogram(job, job$geneFamily)
+        displayPhylogram(job, loraxResults)
+        "phylogram"
+      })
+      updateQueryString(sprintf("?job=%s&family=%s", job$id, job$geneFamily))
+      return
+    }
+
     output$job2 <- renderUI(h4(paste("Annotation Job", job$id)))
     seqUnits <- ifelse(job$sequenceType == "nucleotide", "base pairs", "amino acids")
     output$uploadFile <- renderText(sprintf("Uploaded file: %s (%s, %d sequences, %d total %s)",
@@ -144,7 +155,7 @@ server <- function(input, output, session) {
         jobNow <- readJob(job$id)
         if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
         if (statusDone(jobNow$estscanStatus)) {
-          estscanResult <- sprintf("<a href='%s' target='_blank'>ESTScan output</a>", funnotize(jobNow$inputFile))
+          estscanResult <- sprintf("<a href='%s' target='_blank'>ESTScan output</a>", jobNow$inputFile)
         } else if (statusFailed(jobNow$estscanStatus)) {
           estscanResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$estscanStatus)
         } else {
@@ -159,7 +170,7 @@ server <- function(input, output, session) {
       if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
       blastResults <- sapply(1:length(settings$blast$dbs), function(i) {
         if (statusDone(jobNow$blastStatus[i])) {
-          result <- sprintf("<li><a href='%s' target='_blank'>%s</a>", funnotize(jobNow$blastFiles[i]), basename(settings$blast$dbs[i]))
+          result <- sprintf("<li><a href='%s' target='_blank'>%s</a>", jobNow$blastFiles[i], basename(settings$blast$dbs[i]))
         } else if (statusFailed(jobNow$blastStatus[i])) {
           result <- sprintf("<li><span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$blastStatus[i])
         } else {
@@ -178,7 +189,7 @@ server <- function(input, output, session) {
       jobNow <- readJob(job$id)
       if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
       if (statusDone(jobNow$ahrdStatus)) {
-        ahrdResult <- sprintf("<a href='%s' target='_blank'>AHRD output</a> (.txt file, tabular)", funnotize(jobNow$ahrdFile))
+        ahrdResult <- sprintf("<a href='%s' target='_blank'>AHRD output</a> (.txt file, tabular)", jobNow$ahrdFile)
       } else if (statusFailed(jobNow$ahrdStatus)) {
         ahrdResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$ahrdStatus)
       } else {
@@ -193,7 +204,7 @@ server <- function(input, output, session) {
         if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
         if (statusDone(jobNow$iprStatus)) {
           iprResult <- ifelse(file.info(jobNow$iprFile)$size == 0, "No InterPro output",
-            sprintf("<a href='%s' target='_blank'>InterPro output</a> (.txt file, RAW format)", funnotize(jobNow$iprFile)))
+            sprintf("<a href='%s' target='_blank'>InterPro output</a> (.txt file, RAW format)", jobNow$iprFile))
         } else if (statusFailed(jobNow$iprStatus)) {
           iprResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$iprStatus)
         } else {
@@ -207,7 +218,7 @@ server <- function(input, output, session) {
       jobNow <- readJob(job$id)
       if (isRunning(jobNow)) invalidateLater(4000) # put delay time in settings?
       if (statusDone(jobNow$hmmStatus)) {
-        hmmResult <- sprintf("<a href='%s' target='_blank'>HMM output</a> (.tbl file, tabular)", funnotize(jobNow$hmmFile))
+        hmmResult <- sprintf("<a href='%s' target='_blank'>HMM output</a> (.tbl file, tabular)", jobNow$hmmFile)
       } else if (statusFailed(jobNow$hmmStatus)) {
         hmmResult <- sprintf("<span style='color: %s'>%s</span>", statusColor(jobNow$status), jobNow$hmmStatus)
       } else {
@@ -222,7 +233,7 @@ server <- function(input, output, session) {
         # Summary table
         summary <- createSummaryTable(jobNow) # list of simpleTable, columnNames, summaryTable, summaryTableOut
         output$simpleTable <- renderTable(summary$simpleTable, colnames = FALSE)
-        output$summaryLabel <- renderUI(HTML(sprintf("<b>Summary Table (<a href='%s' target='_blank'>download</a>)", funnotize(jobNow$summaryFile))))
+        output$summaryLabel <- renderUI(HTML(sprintf("<b>Summary Table (<a href='%s' target='_blank'>download</a>)", jobNow$summaryFile)))
         output$summaryTable <- renderDT(summary$summaryTable, rownames = FALSE,
           colnames = summary$columnNames, escape = FALSE, options = list(pageLength = 10))
         if (!file.exists(jobNow$summaryFile)) {
@@ -266,6 +277,35 @@ server <- function(input, output, session) {
 
     # Return something other than the promise, so that Shiny remains responsive.
     # NULL
+  })
+
+  observeEvent(input$phylogramFromPost, {
+    # Directly create the phylogram from the input sequences and gene family
+
+    # The logic behind putting the (nonstandard) upload here is to prevent InterMine users
+    # from creating lots of upload files. Alternatively, we could use a cron job to clean them up.
+    seq <- list(name = input$postData$seqSource, size = nchar(input$postData$rawFasta), # datapath = NULL,
+      seqNames = input$postData$seqNames, sequences = input$postData$seqs)
+    rv$upload <- createNewUpload(seq, input$postData$type)
+
+    job <- createNewJobWithGeneFamily(rv$upload, input$postData$geneFamily)
+    jobId <- job$id
+    runJobWithGeneFamily(job)
+    job <- readJob(jobId)
+
+    # Create a minimal summary table (just Query and Gene.Family columns)
+    df.summary <- data.frame(Query = sort(input$postData$seqNames), Gene.Family = input$postData$geneFamily, stringsAsFactors = FALSE)
+    if (!file.exists(job$summaryFile)) {
+      write.table(df.summary, job$summaryFile, sep = "\t", quote = FALSE, row.names = FALSE)
+    }
+
+    output$page <- reactive({
+      loraxResults <- buildUserPhylogram(job, input$postData$geneFamily)
+      displayPhylogram(job, loraxResults)
+      "phylogram"
+    })
+    updateQueryString(sprintf("?job=%s&family=%s", job$id, input$postData$geneFamily))
+    runjs("window.location.reload();")
   })
 
   displayPhylogram <- function(job, phylogramInfo, useVerticalLayout = TRUE) {

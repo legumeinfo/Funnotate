@@ -12,9 +12,9 @@ Uses third-party tools including
 * [HMMer](http://hmmer.org) for assigning gene family
 * [AHRD](https://github.com/groupschoof/AHRD/blob/master/README.textile) - Automated Human Readable Descriptions
 
-<img src="www/funnotate-process.png" width="400px" height="272px">
+<img src="static/funnotate-process.png" width="400px" height="272px">
 
-Clicking a <img src="www/tools-512.png" width="16px" height="16px"> icon in the Gene Family column of the summary table calls [Lorax](https://github.com/LegumeFederation/lorax) to compute that family&rsquo;s phylogenetic tree. The resulting Phylogram page visualizations use these JavaScript libraries:
+Clicking a <img src="static/tools-512.png" width="16px" height="16px"> icon in the Gene Family column of the summary table calls [Lorax](https://github.com/LegumeFederation/lorax) to compute that family&rsquo;s phylogenetic tree. The resulting Phylogram page visualizations use these JavaScript libraries:
 
 * [biojs-io-newick](https://github.com/daviddao/biojs-io-newick)
 * [Chroma.js](https://github.com/gka/chroma.js/)

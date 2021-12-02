@@ -74,11 +74,6 @@ hmmFileReallyExists <- function(filename) {
   result
 }
 
-# Returns the file path relative to "www/"
-funnotize <- function(filename) {
-  gsub("www/", "", filename)
-}
-
 # --------------------------------------------------------------
 
 # Current and elapsed time as string
@@ -103,12 +98,16 @@ elapsedTimeString <- function(t0, t1) {
 
 # --------------------------------------------------------------
 
-# fiData is the value of a Shiny fileInput control,
+# fiData =
+#   1. For uploaded FASTA files, the value of a Shiny fileInput control (name, size, datapath).
+#   2. For FASTA sequences pasted into the text input, (name = source, size, datapath = temporary file).
+#   3. For FASTA sequences posted from InterMine, (name = source, size, seqNames, sequences)
+#      to avoid creating the upload files until necessary.
 # seqType = n for nucleotide/DNA, p for protein sequence
 createNewUpload <- function(fiData, seqType) {
   scrub <- scrubber[[seqType]]
 
-  uploadDir <- "www/upload"
+  uploadDir <- "static/upload"
   requireDirectory(uploadDir)
   indexFile <- sprintf("%s/index", uploadDir)
   if (!file.exists(indexFile)) {
@@ -132,14 +131,20 @@ createNewUpload <- function(fiData, seqType) {
     messages = c()
   )
 
-  # Read the sequences (to a Biostrings::DNAStringSet or Biostrings::AAStringSet)
-  if (seqType == "n") {
-    fasta <- readDNAStringSet(fiData$datapath)
+  if (!is.null(fiData$datapath)) {
+    # Read the sequences (to a Biostrings::DNAStringSet or Biostrings::AAStringSet)
+    if (seqType == "n") {
+      fasta <- readDNAStringSet(fiData$datapath)
+    } else {
+      fasta <- readAAStringSet(fiData$datapath)
+    }
+    seqNames <- names(fasta)
+    sequences <- as.character(fasta)
   } else {
-    fasta <- readAAStringSet(fiData$datapath)
+    # We already extracted the sequences from the POST
+    seqNames <- fiData$seqNames
+    sequences <- fiData$sequences
   }
-  seqNames <- names(fasta)
-  sequences <- as.character(fasta)
   upload$numSequences <- length(sequences) # or length(seqNames)
   upload$totalSequenceLength <- sum(width(sequences))
 #  probablyNucleotides <- all(!is.na(stri_match_first(sequences, regex = "^[acgtn]*$")))
@@ -187,7 +192,7 @@ createNewUpload <- function(fiData, seqType) {
 
 createNewJob <- function(upload, useInterpro) {
   # Generate an as-yet-unused job id
-  jobsDir <- "www/job"
+  jobsDir <- "static/job"
   requireDirectory(jobsDir)
   dd <- list.dirs(jobsDir)
   while (TRUE) {
@@ -235,6 +240,41 @@ createNewJob <- function(upload, useInterpro) {
     j <- which(names(job) == "ahrdFile")
     job <- append(job, list(iprFile = sprintf("%s/ipr_%s.txt", job$dir, job$id)), j)
   }
+  job
+}
+
+createNewJobWithGeneFamily <- function(upload, geneFamily) {
+  # Generate an as-yet-unused job id
+  jobsDir <- "static/job"
+  requireDirectory(jobsDir)
+  dd <- list.dirs(jobsDir)
+  while (TRUE) {
+    # Why is job id like "A1B2C"? Andrew says it is to guard against "obscenities".
+    aa <- sample(LETTERS, 3, replace = TRUE)
+    nn <- sample(1:9, 2, replace = TRUE) # why not allow 0s? Easily confused with Os?
+    jobId <- paste(aa[1], nn[1], aa[2], nn[2], aa[3], sep = "")
+    if (!(jobId %in% dd)) break
+  }
+  jobDir <- sprintf("%s/%s", jobsDir, jobId)
+
+  # Create the job - fields set to NA will be filled in later
+  job <- list(
+    id = jobId,
+    dir = jobDir,
+    inputFileName = upload$inputFileName,
+    inputFileSize = upload$inputFileSize,
+    sequenceType = upload$sequenceType,
+    numSequences = upload$numSequences,
+    totalSequenceLength = upload$totalSequenceLength,
+    totalBadChars = upload$totalBadChars,
+    inputFile = upload$inputFileScrubbed,
+    geneFamily = geneFamily,
+    jobFile = sprintf("%s/job_%s", jobDir, jobId), # metadata for existing jobs
+    summaryFile = sprintf("%s/summary_%s.txt", jobDir, jobId),
+    status = "new",
+    startTime = currentTimeString(),
+    endTime = ""
+  )
   job
 }
 
@@ -422,11 +462,28 @@ runJob <- function(job) {
   job
 }
 
+runJobWithGeneFamily <- function(job) {
+  requireDirectory(job$dir)
+
+  # ESTScan
+  if (job$sequenceType == "nucleotide") {
+    if (isActive(job)) job <- runESTScan(job)
+  }
+
+  # Job completed!
+  if (isActive(job)) {
+    job$status <- "success"
+    job$endTime <- currentTimeString()
+  }
+  writeJob(job)
+  job
+}
+
 # --------------------------------------------------------------
 
 # Read an existing upload
 readUpload <- function(index) {
-  uploadFile <- sprintf("www/upload/upload_%d", index)
+  uploadFile <- sprintf("static/upload/upload_%d", index)
   if (!file.exists(uploadFile)) return(NULL)
   upload <- read_yaml(uploadFile)
   upload
@@ -434,7 +491,7 @@ readUpload <- function(index) {
 
 # Read an existing job
 readJob <- function(jobId) {
-  jobFile <- sprintf("www/job/%s/job_%s", jobId, jobId)
+  jobFile <- sprintf("static/job/%s/job_%s", jobId, jobId)
   if (!file.exists(jobFile)) return(NULL)
   job <- read_yaml(jobFile)
   job
@@ -512,7 +569,7 @@ createSummaryTable <- function(job) {
         family <- df.hi[1, 1]
         gf1 <- paste(
           sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' title='View the phylotree for this family' target='_blank'>%s</a>", family, family),
-          sprintf("<a href='?job=%s&family=%s' title='Rebuild family phylotree including your sequence' target='%s.%s'><img src='tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>", job$id, family, family, job$id)
+          sprintf("<a href='?job=%s&family=%s' title='Rebuild family phylotree including your sequence' target='%s.%s'><img src='static/tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>", job$id, family, family, job$id)
         )
         gf2 <- df.hi[1, 1]
         gfs1 <- gfs2 <- df.hi[1, 5]

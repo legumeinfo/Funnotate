@@ -56,8 +56,7 @@ server <- function(input, output, session) {
   outputOptions(output, "jobStatus", suspendWhenHidden = FALSE)
 
   clearQueryString <- function() {
-    # TODO: replace with baseURL from settings
-    updateQueryString("http://dev.lis.ncgr.org:50003/en/shiny/Funnotate/")
+    updateQueryString(sprintf("%s//%s:%s%s", session$clientData$url_protocol, session$clientData$url_hostname, session$clientData$url_port, session$clientData$url_pathname))
   }
 
   # TODO: use updateQueryString(q, mode = "push") ?

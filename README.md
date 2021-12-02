@@ -23,7 +23,7 @@ Clicking a <img src="www/tools-512.png" width="16px" height="16px"> icon in the 
 * [MSAViewer](https://github.com/wilzbach/msa/)
 * [TnT Tree](https://tntvis.github.io/tnt.tree/index.html)
 
-View the application [here](http://dev.lis.ncgr.org:50003/en/shiny/Funnotate/).
+View the application [here](http://dev.lis.ncgr.org:50080/shiny/Funnotate/).
 
 To review an old upload, append ?upload=<_upload_index_>
 

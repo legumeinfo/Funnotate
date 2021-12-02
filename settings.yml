@@ -7,12 +7,12 @@ gene_families_data: https://legumeinfo.org/data/v2/LEGUMES/Fabaceae/genefamilies
 
 # General settings
 num_threads: 5
-# error_log: temp/funnotate.err
+# error_log: [...]
 
 # ESTScan
 estscan:
-  exe: /home/svengato/estscan-3.0.3/estscan
-  matrix: /home/svengato/smat/medicago.smat
+  exe: /erdos/svengato/estscan-3.0.3/estscan
+  matrix: /erdos/svengato/smat/medicago.smat
 
 # BLAST: expects the databases in indexed format (.phr, .pin, .psq)
 blast:
@@ -27,7 +27,7 @@ blast:
 # AHRD
 ahrd:
   java: /usr/bin/java
-  jar: /home/svengato/AHRD/ahrd.jar
+  jar: /erdos/svengato/AHRD/ahrd.jar
   # Possible alternatives?
   # java: /erdos/adf/sw/jdk1.7.0/bin/java
   # jar: /erdos/adf/e01/lis/AHRD/2.0-stable/bin/ahrd.jar
@@ -50,7 +50,7 @@ hmmer:
 
 # Lorax
 lorax:
-  url: 127.0.0.1:8000
+  url: 127.0.0.1:9100
   # args: [...]
 
 ############

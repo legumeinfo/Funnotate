@@ -13,10 +13,10 @@ settings <- read_yaml("settings.yml")
 # Global data:
 # Read table of gene families
 getGeneFamilies <- function() {
-  temp <- tempfile()
-  download.file(settings$gene_families_data, temp)
-  df.gf <- read.table(gzfile(temp, "rt"), header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
-  unlink(temp)
+  gfFile <- tempfile()
+  download.file(settings$gene_families_data, gfFile)
+  df.gf <- read.table(gzfile(gfFile, "rt"), header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
+  unlink(gfFile)
   names(df.gf) <- c("name", "descriptor")
   df.gf$name <- gsub("-consensus", "", df.gf$name)
   df.gf
@@ -52,11 +52,16 @@ countBadChars <- function(ss0, ss1) {
 #   ns <- nchar(ss)
 # }
 
+# Create directory if it does not exist
+requireDirectory <- function(dirpath) {
+  if (!dir.exists(dirpath)) dir.create(dirpath)
+}
+
 # File exists and is not empty
 fileReallyExists <- function(filename) {
   fileExists <- file.exists(filename)
   result <- (fileExists && file.info(filename)$size > 0)
-  if (fileExists && !result) system(paste("rm", filename))
+  if (fileExists && !result) file.remove(filename)
   result
 }
 hmmFileReallyExists <- function(filename) {
@@ -65,7 +70,7 @@ hmmFileReallyExists <- function(filename) {
   ll <- readLines(filename)
   ll <- ll[!startsWith(ll, "#")]
   result <- (length(ll) > 0)
-  if (!result) system(paste("rm", filename))
+  if (!result) file.remove(filename)
   result
 }
 
@@ -104,9 +109,7 @@ createNewUpload <- function(fiData, seqType) {
   scrub <- scrubber[[seqType]]
 
   uploadDir <- "www/upload"
-  if (!dir.exists(uploadDir)) {
-    dir.create(uploadDir)
-  }
+  requireDirectory(uploadDir)
   indexFile <- sprintf("%s/index", uploadDir)
   if (!file.exists(indexFile)) {
     write("1", indexFile)
@@ -185,6 +188,7 @@ createNewUpload <- function(fiData, seqType) {
 createNewJob <- function(upload, useInterpro) {
   # Generate an as-yet-unused job id
   jobsDir <- "www/job"
+  requireDirectory(jobsDir)
   dd <- list.dirs(jobsDir)
   while (TRUE) {
     # Why is job id like "A1B2C"? Andrew says it is to guard against "obscenities".
@@ -324,12 +328,12 @@ runAHRD <- function(job) {
   bb <- sapply(ahrdYml$blast_dbs, function(bdb) file.exists(bdb$file))
   ahrdYml$blast_dbs <- ahrdYml$blast_dbs[bb]
   # write the modified YAML to a temporary file
-  ahrdTmpYmlFile <- sprintf("temp/ahrd_%s.yml", job$id)
+  ahrdTmpYmlFile <- tempfile()
   write_yaml(ahrdYml, ahrdTmpYmlFile)
   ahrdCmd <- sprintf("%s -Xmx2g -jar %s %s", settings$ahrd$java, settings$ahrd$jar, ahrdTmpYmlFile)
   system(ahrdCmd)
   # clean up temporary file
-  if (!is.na(ahrdTmpYmlFile) && file.exists(ahrdTmpYmlFile)) system(paste("rm", ahrdTmpYmlFile))
+  if (!is.na(ahrdTmpYmlFile) && file.exists(ahrdTmpYmlFile)) unlink(ahrdTmpYmlFile)
   # done
   if (fileReallyExists(job$ahrdFile)) {
     job$ahrdStatus <- "AHRD: Done"
@@ -343,7 +347,7 @@ runAHRD <- function(job) {
 }
 
 runInterPro <- function(job) {
-  iprXml <- sprintf("temp/ipr_%s.xml", job$id)
+  iprXml <- tempfile()
   iprCmdXml <- sprintf("%s -i %s -o %s -f XML %s", settings$interpro$exe, job$inputFile, iprXml, settings$interpro$params)
   job$iprStatus <- "InterPro: Running"
   writeJob(job)
@@ -352,7 +356,7 @@ runInterPro <- function(job) {
     iprCmdRaw <- sprintf("%s -i %s -mode convert -f RAW -o %s", settings$interpro$exe, iprXml, job$iprFile)
     system(iprCmdRaw)
     # clean up temporary file
-    if (!is.na(iprXml) && file.exists(iprXml)) system(paste("rm", iprXml))
+    if (!is.na(iprXml) && file.exists(iprXml)) unlink(iprXml)
     # done
     if (fileReallyExists(job$iprFile)) {
       job$iprStatus <- "InterPro: Done"
@@ -388,7 +392,7 @@ runHMMer <- function(job) {
 }
 
 runJob <- function(job) {
-  if (!dir.exists(job$dir)) dir.create(job$dir)
+  requireDirectory(job$dir)
 
   # ESTScan
   if (job$sequenceType == "nucleotide") {
@@ -632,27 +636,27 @@ buildUserPhylogram <- function(job, family) {
     allSeqNames <- names(fasta)
     allSequences <- as.character(fasta)
     # ---
-    seqFilename <- sprintf("temp/%s.fasta", family_job)
-    if (file.exists(seqFilename)) {
+    seqFile <- tempfile()
+    if (file.exists(seqFile)) {
       # TODO: do we need this?
-      system(paste("rm", seqFilename))
-      system(paste("touch", seqFilename))
+      unlink(seqFile)
+      system(paste("touch", seqFile))
     }
     for (sn in seqNames) {
       i <- which(grepl(sn, allSeqNames))
-      write(paste0(">", allSeqNames[i]), seqFilename, append = TRUE)
+      write(paste0(">", allSeqNames[i]), seqFile, append = TRUE)
       # split FASTA sequences into lines of at most 60 characters
       ss <- unlist(stri_match_all(allSequences[i], regex = ".{1,60}"))
-      for (s in ss) write(s, seqFilename, append = TRUE)
+      for (s in ss) write(s, seqFile, append = TRUE)
     }
 
     # Upload (POST) matching sequences to Lorax
     sequencesUrl <- sprintf("%s/trees/%s/sequences", settings$lorax$url, family_job)
-    sequencesResponse <- POST(sequencesUrl, body = list(peptide = upload_file(seqFilename)), verbose())
+    sequencesResponse <- POST(sequencesUrl, body = list(peptide = upload_file(seqFile)), verbose())
     sequencesCode <- sequencesResponse$status_code
 
     # Clean up
-    if (file.exists(seqFilename)) system(paste("rm", seqFilename))
+    if (file.exists(seqFile)) unlink(seqFile)
 
     if (sequencesCode == 500) {
       # Internal Server Error

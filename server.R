@@ -84,11 +84,11 @@ server <- function(input, output, session) {
       seqSize <- nchar(seqText)
       if (seqSize == 0) return() # TODO: post error message
       # save to temporary file
-      tempSeqFile <- "temp/pasted-text.fasta"
-      write(seqText, tempSeqFile)
-      seq <- list(name = "Pasted text", size = seqSize, datapath = tempSeqFile)
+      seqFile <- tempfile()
+      write(seqText, seqFile)
+      seq <- list(name = "Pasted sequence(s)", size = seqSize, datapath = seqFile)
       upload <- createNewUpload(seq, seqType)
-      system(paste("rm", tempSeqFile))
+      unlink(seqFile)
     } else {
       # read sequence(s) from file
       if (is.null(input$seqFile)) return() # TODO: post error message

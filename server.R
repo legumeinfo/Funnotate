@@ -285,7 +285,7 @@ server <- function(input, output, session) {
     # The logic behind putting the (nonstandard) upload here is to prevent InterMine users
     # from creating lots of upload files. Alternatively, we could use a cron job to clean them up.
     seq <- list(name = input$postData$seqSource, size = nchar(input$postData$rawFasta), # datapath = NULL,
-      seqNames = input$postData$seqNames, sequences = input$postData$seqs)
+      seqNames = unlist(input$postData$seqNames), sequences = unlist(input$postData$seqs))
     rv$upload <- createNewUpload(seq, input$postData$type)
 
     job <- createNewJobWithGeneFamily(rv$upload, input$postData$geneFamily)
@@ -294,7 +294,7 @@ server <- function(input, output, session) {
     job <- readJob(jobId)
 
     # Create a minimal summary table (just Query and Gene.Family columns)
-    df.summary <- data.frame(Query = sort(input$postData$seqNames), Gene.Family = input$postData$geneFamily, stringsAsFactors = FALSE)
+    df.summary <- data.frame(Query = sort(seq$seqNames), Gene.Family = input$postData$geneFamily, stringsAsFactors = FALSE)
     if (!file.exists(job$summaryFile)) {
       write.table(df.summary, job$summaryFile, sep = "\t", quote = FALSE, row.names = FALSE)
     }

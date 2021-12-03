@@ -190,9 +190,9 @@ ui <- function(req) {
     postString <- rawToChar(postBytes)
 
     postData <- list(seqSource = "POSTed sequence(s)")
-    postData$rawFasta <- URLdecode(stri_match_first(postString, regex="fasta=(.+)&type")[, 2])
-    postData$type <- stri_match_first(postString, regex="type=(.+)&geneFamily")[, 2]
-    geneFamily <- stri_match_first(postString, regex="geneFamily=(.+)")[, 2]
+    postData$rawFasta <- URLdecode(stri_match_first(postString, regex="fasta=([^&]+)&?")[, 2])
+    postData$type <- stri_match_first(postString, regex="type=([^&]+)&?")[, 2]
+    geneFamily <- stri_match_first(postString, regex="geneFamily=([^&]+)&?")[, 2]
     postData$geneFamily <- stri_match_first(geneFamily, regex = "(L_[A-Z0-9]{6})")[, 2]
     seqFile <- tempfile()
     write(postData$rawFasta, seqFile)
@@ -202,6 +202,12 @@ ui <- function(req) {
       fasta <- readAAStringSet(seqFile)
     }
     postData$seqNames <- names(fasta)
+    # trim the type and gene_family from the sequence names
+    ii <- unlist(gregexpr("[ |\\+]type=", postData$seqNames))
+    postData$seqNames <- mapply(function(seqName, i) {
+      if (i < 0) return(seqName)
+      substr(seqName, 1, i - 1)
+    }, postData$seqNames, ii, USE.NAMES = FALSE)
     postData$seqs <- as.character(fasta)
     unlink(seqFile)
     postJson <- toJSON(postData, auto_unbox = TRUE)

@@ -25,9 +25,13 @@ Clicking a <img src="static/tools-512.png" width="16px" height="16px"> icon in t
 
 View the application [here](http://dev.lis.ncgr.org:50080/shiny/Funnotate/).
 
-To review an old upload, append ?upload=<_upload_index_>
+To review a previously uploaded sequence set (for example, to launch a new annotation job), append ?upload=<_upload_index_>
 
-To review an old job, append ?job=<_job_id_>
+To review an existing annotation job, append ?job=<_job_id_>
+
+To view the phylogram for a gene family with sequences inserted by an existing job, append ?family=<_family_>&job=<_job_id_>
+
+To view the phylogram for a gene family alone (with no user-supplied sequences), append ?family=<_family_>
 
 <!-- --------------------------------------------------------------------------------- -->
 

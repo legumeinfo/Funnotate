@@ -568,7 +568,7 @@ createSummaryTable <- function(job) {
       } else {
         family <- df.hi[1, 1]
         gf1 <- paste(
-          sprintf("<a href='https://legumeinfo.org/chado_phylotree/legfed_v1_0.%s' title='View the phylotree for this family' target='_blank'>%s</a>", family, family),
+          sprintf("<a href='?family=%s' title='View the phylotree for this family' target='_blank'>%s</a>", family, family),
           sprintf("<a href='?job=%s&family=%s' title='Rebuild family phylotree including your sequence' target='%s.%s'><img src='static/tools-512.png' width='16px' height='16px' style='vertical-align: top'></a>", job$id, family, family, job$id)
         )
         gf2 <- df.hi[1, 1]
@@ -634,6 +634,23 @@ buildUserPhylogram <- function(job, family) {
   userPhylogramInfo <- list(family = family, done = FALSE)
   i.match <- which(grepl(family, df.geneFamilies$name))
   userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "unknown", df.geneFamilies$descriptor[i.match])
+
+  if (is.null(job)) {
+    # Display precomputed phylotree and MSA for the given family
+    treeUrl <- sprintf("%s/trees/%s/FastTree/tree.nwk", settings$lorax$url, family)
+    treeResponse <- GET(treeUrl)
+    msaUrl <- sprintf("%s/trees/%s/alignment", settings$lorax$url, family)
+    msaResponse <- GET(msaUrl)
+    # failure
+    if (treeResponse$status_code != 200 || msaResponse$status_code != 200) return(NULL)
+    # success
+    newickTree <- rawToChar(treeResponse$content)
+    msa <- rawToChar(msaResponse$content)
+    userPhylogramInfo$tree <- trimws(newickTree)
+    userPhylogramInfo$msa <- trimws(msa)
+    userPhylogramInfo$done <- TRUE
+    return(userPhylogramInfo)
+  }
 
   # Check status of phylotree computation
   family_job <- paste(family, job$id, sep = ".")

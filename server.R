@@ -34,6 +34,13 @@ server <- function(input, output, session) {
           whichPage <- "job"
           displayJob(existingJob)
         }
+      } else if (!is.null(urlFields$family)) {
+        nullJob <- NULL
+        existingPhylogram <- buildUserPhylogram(nullJob, urlFields$family)
+        if (!is.null(existingPhylogram)) {
+          whichPage <- "phylogram"
+          displayPhylogram(nullJob, existingPhylogram)
+        }
       }
     } else if (numUrlFields == 2) {
       if (!is.null(urlFields$job) && !is.null(urlFields$family)) {

@@ -33,5 +33,7 @@ To view the phylogram for a gene family with sequences inserted by an existing j
 
 To view the phylogram for a gene family alone (with no user-supplied sequences), append ?family=<_family_>
 
+To search for gene families by functional keywords, append ?search or ?search=<_keywords_>
+
 <!-- --------------------------------------------------------------------------------- -->
 

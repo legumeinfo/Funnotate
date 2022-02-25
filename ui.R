@@ -40,9 +40,7 @@ ui <- function(req) {
 
       # base HTML
       h2("Funnotate"),
-      img(src = "static/rik.png", style = "horizontal-align: left; vertical-align: center"),
-      HTML("<b>&ldquo;Now that&rsquo;s what I call <i>annotation</i>!&rdquo;</b>"),
-      p(""),
+      # TODO: add new logo here
 
       # Home page
       conditionalPanel("output.page == 'home'",
@@ -225,9 +223,7 @@ ui <- function(req) {
       useShinyjs(),
       # base HTML
       h2("Funnotate"),
-      img(src = "static/rik.png", style = "horizontal-align: left; vertical-align: center"),
-      HTML("<b>&ldquo;Now that&rsquo;s what I call <i>annotation</i>!&rdquo;</b>"),
-      p(""),
+      # TODO: add new logo here
       p(paste(length(postData$seqs), "sequence(s),", sum(nchar(postData$seqs)), "total characters")),
       p(paste("Sequence Type:", ifelse(postData$type == "n", "nucleotide", "protein"))),
       p(paste("Gene Family:", postData$geneFamily)),

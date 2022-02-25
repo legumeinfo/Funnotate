@@ -47,6 +47,7 @@ ui <- function(req) {
       # Home page
       conditionalPanel("output.page == 'home'",
         HTML("<p>Annotate protein or nucleotide sequences using <a href='https://legumeinfo.org' target='_blank'>LIS</a> legume resources.</p>"),
+        HTML("<p>(Or skip ahead to <a href='?search'>search</a> for gene families.)</p>"),
         p("Because this service involves several computationally intensive searches (see pipeline description below), results can take from several minutes to several hours, depending on the size of your query. Thanks for your patience."),
         p("Upload your protein or nucleotide FASTA sequence(s) (max. 100 kbp)"),
         radioButtons("seqSource", label = NULL, choices = c("From text", "From file")),
@@ -69,6 +70,14 @@ ui <- function(req) {
           "<br>",
           "<br>Note that the gene families which are searched are the families displayed on LIS, <i>i.e.</i> those having at least one member which is an LIS species."
         )))
+      ),
+
+      # Gene family functional keyword search page
+      conditionalPanel("output.page == 'geneFamilySearch'",
+        textInput("familyKeywords", label = "Gene family functional keywords:", width = "256px", placeholder = "e.g. cysteine"),
+        actionButton("familySearch", label = "Search"),
+        p(),
+        DTOutput("familyTable")
       ),
 
       # Upload page

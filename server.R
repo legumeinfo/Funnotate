@@ -41,6 +41,11 @@ server <- function(input, output, session) {
           whichPage <- "phylogram"
           displayPhylogram(nullJob, existingPhylogram)
         }
+      } else if (!is.null(urlFields$search)) {
+        # gene family functional keyword search
+        whichPage <- "geneFamilySearch"
+        keywords <- trimws(urlFields$search)
+        updateTextInput(session, "familyKeywords", value = keywords)
       }
     } else if (numUrlFields == 2) {
       if (!is.null(urlFields$job) && !is.null(urlFields$family)) {
@@ -393,6 +398,11 @@ server <- function(input, output, session) {
     output$displayMSA <- renderText(
       ifelse("MSA Visualization" %in% input$phylogramToggleDisplay, "true", "false")
     )
+  })
+
+  observeEvent(input$familySearch, {
+    familyResults <- geneFamilySearchQuery(input$familyKeywords)
+    output$familyTable <- renderDT(familyResults, rownames = FALSE, colnames = c("Description", "Identifier"), escape = FALSE, options = list(pageLength = 10))
   })
 }
 

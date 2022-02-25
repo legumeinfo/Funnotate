@@ -1,6 +1,7 @@
 # --------------------------------------------------------------
 library(Biostrings)
 library(httr)
+library(InterMineR)
 library(jsonlite)
 library(stringi)
 library(yaml)
@@ -22,6 +23,9 @@ getGeneFamilies <- function() {
   df.gf
 }
 df.geneFamilies <- getGeneFamilies()
+
+# LegumeMine service
+legumeMine <- initInterMine(mine = listMines()["LegumeMine"])
 
 # --------------------------------------------------------------
 
@@ -760,6 +764,30 @@ buildUserPhylogram <- function(job, family) {
     userPhylogramInfo$done <- TRUE
     return(userPhylogramInfo)
   }
+}
+
+# --------------------------------------------------------------
+
+geneFamilySearchQuery <- function(keywords) {
+  keywords <- trimws(keywords)
+  if (nchar(keywords) == 0) return(NULL)
+
+  constraints_gf = setConstraints(
+    paths = "GeneFamily.description",
+    operators = "contains",
+    values = list(keywords)
+  )
+  query_gf = setQuery(
+    select = c("GeneFamily.description", "GeneFamily.identifier"),
+    where = constraints_gf
+  )
+  familyResults <- runQuery(legumeMine, query_gf)
+
+  if (!is.null(familyResults)) {
+    families <- stri_match_first(familyResults$GeneFamily.identifier, regex = "^.+\\.(.+)$")[, 2]
+    familyResults$GeneFamily.identifier <- sprintf("<a href='?family=%s' target='_blank'>%s</a>", families, familyResults$GeneFamily.identifier)
+  }
+  familyResults
 }
 
 # --------------------------------------------------------------

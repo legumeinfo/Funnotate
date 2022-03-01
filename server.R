@@ -402,6 +402,10 @@ server <- function(input, output, session) {
 
   observeEvent(input$familySearch, {
     familyResults <- geneFamilySearchQuery(input$familyKeywords)
+    nResults <- ifelse(is.null(familyResults), 0, nrow(familyResults))
+    plural <- ifelse(nResults == 1, "", "s")
+    msg <- sprintf("%d result%s found for '%s'.", nResults, plural, input$familyKeywords)
+    output$familySearchMessage <- renderText(msg)
     output$familyTable <- renderDT(familyResults, rownames = FALSE, colnames = c("Description", "Identifier"), escape = FALSE, options = list(pageLength = 10))
   })
 }

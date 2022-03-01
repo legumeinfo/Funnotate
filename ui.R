@@ -75,6 +75,7 @@ ui <- function(req) {
         textInput("familyKeywords", label = "Gene family functional keywords:", width = "256px", placeholder = "e.g. cysteine"),
         actionButton("familySearch", label = "Search"),
         p(),
+        textOutput("familySearchMessage"),
         DTOutput("familyTable")
       ),
 

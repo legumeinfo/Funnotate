@@ -39,8 +39,7 @@ ui <- function(req) {
       ),
 
       # base HTML
-      h2("Funnotate"),
-      # TODO: add new logo here
+      h2(HTML("<a href='https://legumeinfo.org' target='_blank'><img src='static/lis-6044923.png' width='64px' height='64px'></a> Funnotate")),
 
       # Home page
       conditionalPanel("output.page == 'home'",

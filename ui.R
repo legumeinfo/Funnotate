@@ -43,15 +43,15 @@ ui <- function(req) {
 
       # Home page
       conditionalPanel("output.page == 'home'",
-        HTML("<p>Annotate protein or nucleotide sequences using <a href='https://legumeinfo.org' target='_blank'>LIS</a> legume resources.</p>"),
-        HTML("<p>(Or skip ahead to <a href='?search'>search</a> for gene families.)</p>"),
+        HTML("<p>Annotate protein or nucleotide sequences using <a href='https://legumeinfo.org' target='_blank'>LIS</a> legume resources, and identify homologous gene families.</p>"),
+        HTML("<p>(Or search for gene families using <a href='?search'>this functional keyword search</a>.)</p>"),
         p("Because this service involves several computationally intensive searches (see pipeline description below), results can take from several minutes to several hours, depending on the size of your query. Thanks for your patience."),
         p("Upload your protein or nucleotide FASTA sequence(s) (max. 100 kbp)"),
         radioButtons("seqSource", label = NULL, choices = c("From text", "From file")),
         conditionalPanel("input.seqSource == 'From text'", textAreaInput("seqText", label = "Paste FASTA sequence(s) here:", width = "800px", height = "400px")),
         conditionalPanel("input.seqSource == 'From file'", fileInput("seqFile", label = NULL)),
         radioButtons("seqType", label = "Type of sequence", choices = c("nucleotide", "protein")),
-        actionButton("upload", "Upload File"),
+        actionButton("upload", "Upload Sequence(s)"),
         p(""),
         wellPanel(HTML(paste(
           "Annotation pipeline:",
@@ -71,7 +71,9 @@ ui <- function(req) {
 
       # Gene family functional keyword search page
       conditionalPanel("output.page == 'geneFamilySearch'",
-        textInput("familyKeywords", label = "Gene family functional keywords:", width = "256px", placeholder = "e.g. cysteine"),
+        textInput("familyKeywords", label = "Gene Family Search:", width = "256px", placeholder = "e.g. cysteine"),
+        HTML("<p>Enter keyword(s) to search for functional descriptions in gene families.</p>"),
+	HTML("<p>(Or go to the <a href='.'>Funnotate home page</a> to annotate your sequence(s) and identify homologous gene families.)</p>"),
         actionButton("familySearch", label = "Search"),
         p(),
         textOutput("familySearchMessage"),

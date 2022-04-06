@@ -59,7 +59,7 @@ ui <- function(req) {
           "<br>1. <a href='http://estscan.sourceforge.net' target='_blank'>ESTScan</a> if needed (to translate nucleotide uploads)",
           "<br>2. <a href='https://blast.ncbi.nlm.nih.gov/Blast.cgi' target='_blank'>BLAST</a> alignment to reference gene databases (soy, <i>Medicago</i>, <i>Arabidopsis</i>)",
           "<br>3. (optional) <a href='https://www.ebi.ac.uk/interpro/search/sequence/' target='_blank'>InterProScan</a> (methods: TIGRFAM, ProDom, SMART, SUPERFAMILY, PANTHER, Gene3D, PIRSF, Pfam, Coils)",
-          "<br>4. Assignment of <a href='https://www.legumeinfo.org/search/phylotree' target='_blank'>gene family</a> (using <a href='http://hmmer.org' target='_blank'>HMMer</a>)",
+          "<br>4. Assignment of <a href='https://legacy.legumeinfo.org/search/phylotree' target='_blank'>gene family</a> (using <a href='http://hmmer.org' target='_blank'>HMMer</a>)",
           "<br>5. Best-hit extraction by <a href='https://github.com/groupschoof/AHRD/blob/master/README.textile' target='_blank'>AHRD</a> (Automated Human Readable Descriptions)",
           "<br>",
           "<br>Results include: Phytozome gene family, AHRD descriptor, best BLAST hits, GO and InterPro ID (the latter two only if InterProScan is run)",
@@ -147,7 +147,7 @@ ui <- function(req) {
         p(""),
         textOutput("phylogramStatus"),
         conditionalPanel("output.hasPhylotree == 'true'",
-          HTML("<a href=https://legumeinfo.org/search/phylotree/userinfo target=_blank>Gene Family Help</a>"),
+          HTML("<a href=https://legacy.legumeinfo.org/search/phylotree/userinfo target=_blank>Gene Family Help</a>"),
           checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
             choices = c("Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
           # Taxa chart

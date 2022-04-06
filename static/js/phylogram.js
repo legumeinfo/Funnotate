@@ -119,7 +119,7 @@ function taxonToColor(taxon) {
 
 // =============================================================
 
-const LINKOUTS_BASE_URL = 'https://legumeinfo.org';
+const LINKOUTS_BASE_URL = 'https://legacy.legumeinfo.org';
 
 function lineWithLink(href, text) {
   return '<p><a href="' + href + '" target=_blank>' + text + '</a></p>';

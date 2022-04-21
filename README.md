@@ -23,7 +23,7 @@ Clicking a <img src="static/tools-512.png" width="16px" height="16px"> icon in t
 * [MSAViewer](https://github.com/wilzbach/msa/)
 * [TnT Tree](https://tntvis.github.io/tnt.tree/index.html)
 
-View the application [here](http://dev.lis.ncgr.org:50080/shiny/Funnotate/).
+View the application [here](https://funnotate.legumeinfo.org).
 
 To review a previously uploaded sequence set (for example, to launch a new annotation job), append ?upload=<_upload_index_>
 

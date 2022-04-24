@@ -8,6 +8,19 @@ library(stringi)
 
 addResourcePath("static", "./static")
 
+proxyclick <- paste(
+  "$(function() {",
+    "var $els = $('[data-proxy-click]');",
+    "$.each($els, function(idx, el) {",
+      "var $el = $(el);",
+      "var $proxy = $('#' + $el.data('proxyClick'));",
+      "$el.keydown(function(e) {",
+        "if (e.keyCode == 13) $proxy.click();",
+      "});",
+    "});",
+  "})"
+)
+
 ui <- function(req) {
   # The `req` object is a Rook environment
   # See https://github.com/jeffreyhorner/Rook#the-environment
@@ -37,6 +50,7 @@ ui <- function(req) {
       extendShinyjs(script = "static/js/phylogram.js",
         functions = c("setPhylotree", "setPhylotreeLayout", "showSingletonNodes", "clearSubtreeFocus", "resetTaxa", "setMSA")
       ),
+      tags$head(tags$script(HTML(proxyclick))),
 
       # base HTML
       singleton(tags$head(tags$title("Funnotate"))),
@@ -72,9 +86,12 @@ ui <- function(req) {
 
       # Gene family functional keyword search page
       conditionalPanel("output.page == 'geneFamilySearch'",
-        textInput("familyKeywords", label = "Gene Family Search:", width = "256px", placeholder = "e.g. cysteine"),
+        tagAppendAttributes(
+          textInput("familyKeywords", label = "Gene Family Search:", width = "256px", placeholder = "e.g. cysteine"),
+	  `data-proxy-click` = "familySearch"
+	),
         HTML("<p>Enter keyword(s) to search for functional descriptions in gene families.</p>"),
-	HTML("<p>(Or go to the <a href='.'>Funnotate home page</a> to annotate your sequence(s) and identify homologous gene families.)</p>"),
+        HTML("<p>(Or go to the <a href='.'>Funnotate home page</a> to annotate your sequence(s) and identify homologous gene families.)</p>"),
         actionButton("familySearch", label = "Search"),
         p(),
         textOutput("familySearchMessage"),

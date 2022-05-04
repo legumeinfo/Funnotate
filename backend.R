@@ -1,7 +1,6 @@
 # --------------------------------------------------------------
 library(Biostrings)
 library(httr)
-library(InterMineR)
 library(jsonlite)
 library(stringi)
 library(yaml)
@@ -24,8 +23,8 @@ getGeneFamilies <- function() {
 }
 df.geneFamilies <- getGeneFamilies()
 
-# LegumeMine service
-legumeMine <- initInterMine(mine = listMines()["LegumeMine"])
+# LegumeMine
+legumeMineUrl <- "https://mines.legumeinfo.org/legumemine"
 
 # --------------------------------------------------------------
 
@@ -772,20 +771,27 @@ geneFamilySearchQuery <- function(keywords) {
   keywords <- trimws(keywords)
   if (nchar(keywords) == 0) return(NULL)
 
-  constraints_gf = setConstraints(
-    paths = "GeneFamily.description",
-    operators = "contains",
-    values = list(keywords)
-  )
-  query_gf = setQuery(
-    select = c("GeneFamily.description", "GeneFamily.identifier"),
-    where = constraints_gf
-  )
-  familyResults <- runQuery(legumeMine, query_gf)
+  familyRequest <- sprintf("%s/service/search?q=%s&searchBag=&facet_Category=GeneFamily", legumeMineUrl, URLencode(keywords))
+  familyResponse <- GET(familyRequest)
+  json <- fromJSON(rawToChar(familyResponse$content))
+  results_per_page <- 100 # set somewhere in LegumeMine
+  num_pages <- 1 + (json$totalHits - 1) %/% results_per_page
+  familyResults <- json$results$fields
+  familyResults$relevance <- json$results$relevance
+  if (num_pages > 1) {
+    for (p in 2:num_pages) {
+      s <- (p - 1)*results_per_page # start field in URL must have zero offset
+      familyResponse_p <- GET(paste0(familyRequest, "&start=", s))
+      json_p <- fromJSON(rawToChar(familyResponse_p$content))
+      familyResults_p <- json_p$results$fields
+      familyResults_p$relevance <- json_p$results$relevance
+      familyResults <- rbind(familyResults, familyResults_p)
+    }
+  }
 
   if (!is.null(familyResults)) {
-    families <- stri_match_first(familyResults$GeneFamily.identifier, regex = "^.+\\.(.+)$")[, 2]
-    familyResults$GeneFamily.identifier <- sprintf("<a href='?family=%s' target='_blank'>%s</a>", families, familyResults$GeneFamily.identifier)
+    families <- stri_match_first(familyResults$identifier, regex = "^.+\\.(.+)$")[, 2]
+    familyResults$identifier <- sprintf("<a href='?family=%s' target='_blank'>%s</a>", families, familyResults$identifier)
   }
   familyResults
 }

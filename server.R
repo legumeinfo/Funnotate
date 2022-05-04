@@ -408,7 +408,13 @@ server <- function(input, output, session) {
     clickOne <- ifelse(nResults == 0, "", sprintf(" Click %s identifier to visualize its phylogram and MSA.", what))
     msg <- sprintf("%d result%s found for '%s'.%s", nResults, plural, input$familyKeywords, clickOne)
     output$familySearchMessage <- renderText(msg)
-    output$familyTable <- renderDT(familyResults, rownames = FALSE, colnames = c("Description", "Identifier"), escape = FALSE, options = list(pageLength = 10))
+    output$familyTable <- renderDT({
+      dt <- datatable(familyResults, escape = FALSE, options = list(pageLength = 100),
+        rownames = FALSE, colnames = c("Identifier", "Description", "Score")
+      )
+      if (!is.null(familyResults)) dt <- dt %>% formatRound(3, 2) # otherwise an error occurs
+      dt
+    })
   })
 }
 

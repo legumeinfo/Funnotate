@@ -90,7 +90,15 @@ ui <- function(req) {
           textInput("familyKeywords", label = "Gene Family Search:", width = "256px", placeholder = "e.g. cysteine"),
 	  `data-proxy-click` = "familySearch"
 	),
-        HTML("<p>Enter keyword(s) to search for functional descriptions in gene families.</p>"),
+        HTML(paste(
+          "<p>",
+          "Enter keyword(s) to search for functional descriptions in gene families.",
+          "<br>Use quotes to search for phrases (\"cysteine methyl\"),",
+          "<br>* for partial matches (cyst*),",
+          "<br>OR (AND) to search for either (both) of two terms (cysteine OR methyl; cysteine AND methyl),",
+          "<br>NOT to exclude a term (cysteine AND NOT methyl).",
+          "</p>"
+        )),
         HTML("<p>(Or go to the <a href='.'>Funnotate home page</a> to annotate your sequence(s) and identify homologous gene families.)</p>"),
         actionButton("familySearch", label = "Search"),
         p(),

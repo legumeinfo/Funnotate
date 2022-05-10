@@ -16,6 +16,7 @@ server <- function(input, output, session) {
     whichPage <- "home"
 
     urlFields <- parseQueryString(session$clientData$url_search)
+    if (!is.null(urlFields$family)) urlFields$family <- URLdecode(urlFields$family)
     numUrlFields <- length(urlFields)
     if (numUrlFields == 1) {
       if (!is.null(urlFields$upload)) {
@@ -55,6 +56,15 @@ server <- function(input, output, session) {
           whichPage <- "phylogram"
           loraxResults <- buildUserPhylogram(existingJob, urlFields$family)
           displayPhylogram(existingJob, loraxResults)
+        }
+      } else if (!is.null(urlFields$family) && !is.null(urlFields$genes)) {
+        proteins <- genesToProteinsQuery(urlFields$family, urlFields$genes)
+        family <- stri_match_first(urlFields$family, regex=".*(L_.+$)")[, 2]
+        nullJob <- NULL
+        existingPhylogram <- buildUserPhylogram(nullJob, family)
+        if (!is.null(existingPhylogram)) {
+          whichPage <- "phylogram"
+          displayPhylogram(nullJob, existingPhylogram, proteins)
         }
       }
     }
@@ -320,7 +330,7 @@ server <- function(input, output, session) {
     runjs("window.location.reload();")
   })
 
-  displayPhylogram <- function(job, phylogramInfo, useVerticalLayout = TRUE) {
+  displayPhylogram <- function(job, phylogramInfo, proteins = NULL) {
     if (is.null(phylogramInfo)) return()
     # Otherwise, display phylotree for selected gene family, with user sequence(s) inserted
     if (!phylogramInfo$done) {
@@ -354,7 +364,7 @@ server <- function(input, output, session) {
         paste(sprintf("<br>&bull; <a onclick='onScrollToHilite(\"%s\");'>%s</a>", phylogramInfo$seqNames, phylogramInfo$seqNames), collapse = "")
       )))
       rv$tree <- phylogramInfo$tree
-      js$setPhylotree(phylogramInfo$tree, "phylotree") # sets tree data for both phylotree and taxa chart
+      js$setPhylotree(phylogramInfo$tree, "phylotree", paste(proteins, collapse = " ")) # sets tree data for both phylotree and taxa chart
     }
 
     if (!is.null(phylogramInfo$msa)) {

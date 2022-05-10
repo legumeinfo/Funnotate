@@ -32,6 +32,7 @@ To review an existing annotation job, append ?job=<_job_id_>
 To view the phylogram for a gene family with sequences inserted by an existing job, append ?family=<_family_>&job=<_job_id_>
 
 To view the phylogram for a gene family alone (with no user-supplied sequences), append ?family=<_family_>
+<br>To additionally highlight the proteins associated with specified genes from that family, append ?family=<_family_>&genes=<_gene1_>%2B<_gene2_>%2B<...>%2B<_geneN_> (note that '%2B' is URL-encoded '+')
 
 To search for gene families by functional keywords, append ?search or ?search=<_keywords_>
 

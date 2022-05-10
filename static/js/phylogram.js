@@ -134,6 +134,9 @@ shinyjs.setPhylotree = function(args) {
   sessionStorage.clear();
   sessionStorage.setItem("newickTree", args[0]);
   var elementId = args[1];
+  if (args.length > 2) {
+    sessionStorage.setItem("highlightedProteins", args[2])
+  }
   drawPhylotree(elementId);
 
   // this tree also defines the taxa for the Taxa chart
@@ -243,14 +246,15 @@ function drawDistanceScale(width) {
 }
 
 function highlightUserSequences() {
+  var highlightedProteins = sessionStorage.getItem("highlightedProteins")
   d3.selectAll('text.tnt_tree_label')
-    .filter((d) => d.name.toLowerCase().startsWith('usr'))
+    .filter((d) => d.name.toLowerCase().startsWith('usr') || highlightedProteins.includes(d.name))
     .each(function(d) {
       d.bbox = this.getBBox();
     });
   var top = Infinity;
   d3.selectAll('g.tnt_tree_node')
-    .filter((d) => d.name.toLowerCase().startsWith('usr'))
+    .filter((d) => d.name.toLowerCase().startsWith('usr') || highlightedProteins.includes(d.name))
     .insert('svg:rect', ':first-child')
     .attr('x', (d) => {
       if (d.textAnchor === 'end') {

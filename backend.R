@@ -1,6 +1,7 @@
 # --------------------------------------------------------------
 library(Biostrings)
 library(httr)
+library(InterMineR)
 library(jsonlite)
 library(stringi)
 library(yaml)
@@ -23,8 +24,8 @@ getGeneFamilies <- function() {
 }
 df.geneFamilies <- getGeneFamilies()
 
-# LegumeMine
-legumeMineUrl <- "https://mines.legumeinfo.org/legumemine"
+# LegumeMine service
+legumeMine <- initInterMine(mine = listMines()["LegumeMine"])
 
 # --------------------------------------------------------------
 
@@ -771,7 +772,7 @@ geneFamilySearchQuery <- function(keywords) {
   keywords <- trimws(keywords)
   if (nchar(keywords) == 0) return(NULL)
 
-  familyRequest <- sprintf("%s/service/search?q=%s&searchBag=&facet_Category=GeneFamily", legumeMineUrl, URLencode(keywords))
+  familyRequest <- sprintf("%s/service/search?q=%s&searchBag=&facet_Category=GeneFamily", legumeMine@mine, URLencode(keywords))
   familyResponse <- GET(familyRequest)
   json <- fromJSON(rawToChar(familyResponse$content))
   results_per_page <- 100 # set somewhere in LegumeMine
@@ -794,6 +795,44 @@ geneFamilySearchQuery <- function(keywords) {
     familyResults$identifier <- sprintf("<a href='?family=%s' target='_blank'>%s</a>", families, familyResults$identifier)
   }
   familyResults
+}
+
+# --------------------------------------------------------------
+
+genesToProteinsQuery <- function(family, genes) {
+  # if necessary, add prefix to make gene family full-yuck
+  if (startsWith(family, "L_")) family <- paste0("legfed_v1_0.", family)
+
+  # convert genes to character vector
+  genes <- unlist(strsplit(URLdecode(genes), split = "\\+"))
+
+  # find all genes in family
+  family_constraints = setConstraints(
+    paths = "GeneFamily.identifier",
+    operators = "=",
+    values = list(family)
+  )
+  genes_query = setQuery(
+    select = c("GeneFamily.genes.primaryIdentifier"),
+    where = family_constraints
+  )
+  all_genes <- runQuery(legumeMine, genes_query)
+
+  # match against user-supplied genes
+  matched_genes <- base::intersect(all_genes$GeneFamily.genes.primaryIdentifier, genes)
+
+  # match against proteins
+  gene_constraints = setConstraints(
+    paths = "Gene.primaryIdentifier",
+    operators = "=",
+    values = list(matched_genes)
+  )
+  protein_query = setQuery(
+    select = c("Gene.proteins.primaryIdentifier"),
+    where = gene_constraints
+  )
+  proteins <- runQuery(legumeMine, protein_query)
+  proteins$Gene.proteins.primaryIdentifier
 }
 
 # --------------------------------------------------------------

@@ -64,6 +64,7 @@ server <- function(input, output, session) {
         existingPhylogram <- buildUserPhylogram(nullJob, family)
         if (!is.null(existingPhylogram)) {
           whichPage <- "phylogram"
+          existingPhylogram$seqNames <- proteins
           displayPhylogram(nullJob, existingPhylogram, proteins)
         }
       }

@@ -820,6 +820,7 @@ genesToProteinsQuery <- function(family, genes) {
 
   # match against user-supplied genes
   matched_genes <- base::intersect(all_genes$GeneFamily.genes.primaryIdentifier, genes)
+  if (length(matched_genes) == 0) return(character(0))
 
   # match against proteins
   gene_constraints = setConstraints(
@@ -832,6 +833,7 @@ genesToProteinsQuery <- function(family, genes) {
     where = gene_constraints
   )
   proteins <- runQuery(legumeMine, protein_query)
+  if (length(proteins) == 0) return(character(0))
   proteins$Gene.proteins.primaryIdentifier
 }
 

@@ -800,8 +800,8 @@ geneFamilySearchQuery <- function(keywords) {
 # --------------------------------------------------------------
 
 genesToProteinsQuery <- function(family, genes) {
-  # if necessary, add prefix to make gene family full-yuck
-  if (startsWith(family, "L_")) family <- paste0("legfed_v1_0.", family)
+  # add prefix to restore full-yuck gene family name for the query
+  family <- paste0("legfed_v1_0.", family)
 
   # convert genes to character vector
   genes <- unlist(strsplit(URLdecode(genes), split = "\\+"))

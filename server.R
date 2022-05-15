@@ -16,7 +16,12 @@ server <- function(input, output, session) {
     whichPage <- "home"
 
     urlFields <- parseQueryString(session$clientData$url_search)
-    if (!is.null(urlFields$family)) urlFields$family <- URLdecode(urlFields$family)
+    family <- urlFields$family
+    if (!is.null(family)) {
+      family <- URLdecode(family)
+      # strip full-yuck prefix (if any) to extract the L_xxxxxx part of the family name
+      family <- stri_match_first(urlFields$family, regex=".*(L_.+$)")[, 2]
+    }
     numUrlFields <- length(urlFields)
     if (numUrlFields == 1) {
       if (!is.null(urlFields$upload)) {
@@ -35,9 +40,9 @@ server <- function(input, output, session) {
           whichPage <- "job"
           displayJob(existingJob)
         }
-      } else if (!is.null(urlFields$family)) {
+      } else if (!is.null(family)) {
         nullJob <- NULL
-        existingPhylogram <- buildUserPhylogram(nullJob, urlFields$family)
+        existingPhylogram <- buildUserPhylogram(nullJob, family)
         if (!is.null(existingPhylogram)) {
           whichPage <- "phylogram"
           displayPhylogram(nullJob, existingPhylogram)
@@ -49,17 +54,16 @@ server <- function(input, output, session) {
         updateTextInput(session, "familyKeywords", value = keywords)
       }
     } else if (numUrlFields == 2) {
-      if (!is.null(urlFields$job) && !is.null(urlFields$family)) {
+      if (!is.null(urlFields$job) && !is.null(family)) {
         # Create Lorax tree for sequences that match the selected gene family
         existingJob <- readJob(urlFields$job)
         if (!is.null(existingJob)) {
           whichPage <- "phylogram"
-          loraxResults <- buildUserPhylogram(existingJob, urlFields$family)
+          loraxResults <- buildUserPhylogram(existingJob, family)
           displayPhylogram(existingJob, loraxResults)
         }
-      } else if (!is.null(urlFields$family) && !is.null(urlFields$genes)) {
-        proteins <- genesToProteinsQuery(urlFields$family, urlFields$genes)
-        family <- stri_match_first(urlFields$family, regex=".*(L_.+$)")[, 2]
+      } else if (!is.null(family) && !is.null(urlFields$genes)) {
+        proteins <- genesToProteinsQuery(family, urlFields$genes)
         nullJob <- NULL
         existingPhylogram <- buildUserPhylogram(nullJob, family)
         if (!is.null(existingPhylogram)) {

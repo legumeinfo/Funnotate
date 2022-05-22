@@ -73,6 +73,9 @@ server <- function(input, output, session) {
         }
       }
     }
+
+    # Clean up and return page
+    runjs("$('#loading').html('');") # clear page loading message
     if (whichPage == "home") clearQueryString()
     whichPage
   })

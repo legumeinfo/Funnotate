@@ -55,6 +55,7 @@ ui <- function(req) {
       # base HTML
       singleton(tags$head(tags$title("Funnotate"))),
       h2(HTML("<a href='https://legumeinfo.org' target='_blank'><img src='static/lis-6044923.png' width='64px' height='64px'></a> Funnotate")),
+      tags$div(id = "loading", p("Loading, please wait ...")),
 
       # Home page
       conditionalPanel("output.page == 'home'",

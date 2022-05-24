@@ -419,6 +419,10 @@ server <- function(input, output, session) {
     )
   })
 
+  observeEvent(input$familyKeywords, {
+    # automatically click Search button if user entered keywords in the URL (which resets button value to 0)
+    if (input$familySearch == 0 && nchar(input$familyKeywords) > 0) click("familySearch")
+  })
   observeEvent(input$familySearch, {
     familyResults <- geneFamilySearchQuery(input$familyKeywords)
     nResults <- ifelse(is.null(familyResults), 0, nrow(familyResults))
@@ -434,6 +438,8 @@ server <- function(input, output, session) {
       if (!is.null(familyResults)) dt <- dt %>% formatRound(3, 2) # otherwise an error occurs
       dt
     })
+    # reset URL
+    updateQueryString("?search")
   })
 }
 

@@ -86,7 +86,8 @@ server <- function(input, output, session) {
   outputOptions(output, "jobStatus", suspendWhenHidden = FALSE)
 
   clearQueryString <- function() {
-    updateQueryString(sprintf("%s//%s:%s%s", session$clientData$url_protocol, session$clientData$url_hostname, session$clientData$url_port, session$clientData$url_pathname))
+    colon_port <- ifelse(is.null(session$clientData$url_port), "", paste0(":", session$clientData$url_port))
+    updateQueryString(sprintf("%s//%s%s%s", session$clientData$url_protocol, session$clientData$url_hostname, colon_port, session$clientData$url_pathname))
   }
 
   # TODO: use updateQueryString(q, mode = "push") ?

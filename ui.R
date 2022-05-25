@@ -27,6 +27,8 @@ ui <- function(req) {
   if (identical(req$REQUEST_METHOD, "GET")) {
     fluidPage(
       useShinyjs(),
+      # Font Awesome (for spinning progress icons)
+      singleton(tags$head(tags$link(href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css', rel='stylesheet', type='text/css'))),
       # Chroma.js
       singleton(tags$head(tags$script(src='https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.1.2/chroma.min.js', type='text/javascript'))),
       # TnT Tree
@@ -55,7 +57,7 @@ ui <- function(req) {
       # base HTML
       singleton(tags$head(tags$title("Funnotate"))),
       h2(HTML("<a href='https://legumeinfo.org' target='_blank'><img src='static/lis-6044923.png' width='64px' height='64px'></a> Funnotate")),
-      tags$div(id = "loading", p("Loading, please wait ...")),
+      tags$div(id = "loading", HTML("<p>Loading, please wait. <i class='fa fa-spinner fa-spin' style='font-size: 32px;'></i></p>")),
 
       # Home page
       conditionalPanel("output.page == 'home'",

@@ -804,7 +804,7 @@ genesToProteinsQuery <- function(family, genes) {
   family <- paste0("legfed_v1_0.", family)
 
   # convert genes to character vector
-  genes <- unlist(strsplit(URLdecode(genes), split = "\\+"))
+  genes <- unlist(strsplit(URLdecode(genes), split = ","))
 
   # find all genes in family
   family_constraints = setConstraints(

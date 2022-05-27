@@ -62,8 +62,8 @@ server <- function(input, output, session) {
           loraxResults <- buildUserPhylogram(existingJob, family)
           displayPhylogram(existingJob, loraxResults)
         }
-      } else if (!is.null(family) && !is.null(urlFields$genes)) {
-        proteins <- genesToProteinsQuery(family, urlFields$genes)
+      } else if (!is.null(family) && !is.null(urlFields$gene_name)) {
+        proteins <- genesToProteinsQuery(family, urlFields$gene_name)
         nullJob <- NULL
         existingPhylogram <- buildUserPhylogram(nullJob, family)
         if (!is.null(existingPhylogram)) {

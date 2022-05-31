@@ -315,7 +315,9 @@ function onTreeNodeClick(node) {
   const isCollapsed = node.is_collapsed();
   if (!isCollapsed && node.is_leaf()) {
     // Leaf nodes: post dialog with linkouts
-    var node_name = node.node_name();
+    const node_fullname = node.node_name();
+    var node_name = node_fullname;
+    if (node_name.startsWith('USR.')) node_name = node_name.substring(4);
     var gensp = node_name.substring(0, 5);
     if (gensp in genspToTaxon) {
       var taxon = genspToTaxon[gensp];
@@ -339,10 +341,11 @@ function onTreeNodeClick(node) {
         content += lineWithLink(LINKOUTS_BASE_URL + '/node/' + node.data()._id,
           'View feature: ' + node_name);
 */
-        showDialog(node_name, content);
+        showDialog(node_fullname, content);
       });
     } else {
-      showDialog(node_name, '<p>User sequence, no linkouts.</p>');
+      // phylogram leaf nodes should always have a gensp, so we may never reach here, but post a message if we do
+      showDialog(node_fullname, 'No linkouts available.');
     }
   } else {
     // Internal node actions

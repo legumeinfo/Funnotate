@@ -1,6 +1,7 @@
 # --------------------------------------------------------------
 library(shinyjs)
 library(Biostrings)
+library(cicerone)
 library(DT)
 library(jsonlite)
 library(stringi)
@@ -27,6 +28,7 @@ ui <- function(req) {
   if (identical(req$REQUEST_METHOD, "GET")) {
     fluidPage(
       useShinyjs(),
+      use_cicerone(),
       # Font Awesome (for spinning progress icons)
       singleton(tags$head(tags$link(href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css', rel='stylesheet', type='text/css'))),
       # Chroma.js
@@ -171,33 +173,39 @@ ui <- function(req) {
 
       # Phylogram page
       conditionalPanel("output.page == 'phylogram'",
-        h3("Phylogram"),
+        h3("Phylogram", id = "tour-intro"),
         htmlOutput("phylogramFamilyInfo"),
         p(""),
         textOutput("phylogramStatus"),
         conditionalPanel("output.hasPhylotree == 'true'",
-          HTML("<a href=https://legacy.legumeinfo.org/search/phylotree/userinfo target=_blank>Gene Family Help</a>"),
+          actionLink("tour", "Quick Interactive Tour"),
+          HTML("<span style='font-size: 9px'>(uses <a href='https://cicerone.john-coene.com' target='_blank'>Cicerone</a>)</span>"),
+          HTML("&bull; <a href=https://legacy.legumeinfo.org/search/phylotree/userinfo target=_blank>Gene Family Help</a>"),
           checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
             choices = c("Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
           # Taxa chart
           conditionalPanel("output.displayTaxaAndLegend == 'true'",
             hr(),
-            actionButton("resetTaxa", label = "Reset Taxa Selection"),
-            HTML("<svg id='taxa' height='300px'></svg>"),
-            HTML(paste("<p style='font-size:9px; text-align: right;'>",
-              "<a href='https://nvd3.org/' target='_blank'>NVD3</a>",
-              " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
-              "</p>"
-            ))
+            tags$div(id = "tour-taxaAndLegend",
+              actionButton("resetTaxa", label = "Reset Taxa Selection"),
+              HTML("<svg id='taxa' height='300px'></svg>"),
+              HTML(paste("<p style='font-size:9px; text-align: right;'>",
+                "<a href='https://nvd3.org/' target='_blank'>NVD3</a>",
+                " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
+                "</p>"
+              ))
+            )
           ),
           # MSA view
           conditionalPanel("output.displayMSA == 'true'",
             hr(),
-            tags$div(id = "msa", style = "resize: vertical; overflow: auto;"),
-            HTML(paste("<p style='font-size:9px; text-align: right;'>",
-              "<a href='https://github.com/wilzbach/msa/' target='_blank'>MSA Viewer</a>",
-              "</p>"
-            ))
+            tags$div(id = "tour-msa",
+              tags$div(id = "msa", style = "resize: vertical; overflow: auto;"),
+              HTML(paste("<p style='font-size:9px; text-align: right;'>",
+                "<a href='https://github.com/wilzbach/msa/' target='_blank'>MSA Viewer</a>",
+                "</p>"
+              ))
+            )
           ),
           # Phylotree
           hr(),
@@ -207,16 +215,18 @@ ui <- function(req) {
             actionButton("resetSubtreeFocus", label = "Reset to full tree"),
             div(style = "display: inline-block; vertical-align: middle;", checkboxInput("showSingletonNodes", label = "Show singleton nodes", value = TRUE))
           ),
-          htmlOutput("phylotreeHilited"),
-          HTML("<svg id='phylotreeDistanceScale'></svg>"),
-          tags$div(id = "phylotree"),
-          HTML(paste("<p style='font-size:9px; text-align: right;'>",
-            "<a href='https://tntvis.github.io/tnt.tree/' target='_blank'>TnT Tree</a>",
-            " &bull; <a href='https://github.com/daviddao/biojs-io-newick'>biojs-io-newick</a>",
-            " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
-            " &bull; <a href='https://jqueryui.com' target='_blank'>jQuery UI</a>",
-            "</p>"
-          )),
+          tags$div(id = "tour-phylotree",
+            htmlOutput("phylotreeHilited"),
+            HTML("<svg id='phylotreeDistanceScale'></svg>"),
+            tags$div(id = "phylotree"),
+            HTML(paste("<p style='font-size:9px; text-align: right;'>",
+              "<a href='https://tntvis.github.io/tnt.tree/' target='_blank'>TnT Tree</a>",
+              " &bull; <a href='https://github.com/daviddao/biojs-io-newick'>biojs-io-newick</a>",
+              " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
+              " &bull; <a href='https://jqueryui.com' target='_blank'>jQuery UI</a>",
+              "</p>"
+            ))
+          ),
           hr()
         )
       )

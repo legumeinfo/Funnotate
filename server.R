@@ -4,6 +4,7 @@ library(future)
 plan(multisession) # or multicore?
 
 source("backend.R")
+source("tour.R")
 # --------------------------------------------------------------
 
 server <- function(input, output, session) {
@@ -440,6 +441,11 @@ server <- function(input, output, session) {
     })
     # reset URL
     updateQueryString("?search")
+  })
+
+  observeEvent(input$tour, {
+    updateCheckboxGroupInput(session, "phylogramToggleDisplay", selected = c("Taxa and Legend", "MSA Visualization"))
+    tour$init()$start()
   })
 }
 

@@ -4,7 +4,7 @@
 
 tour <- Cicerone$new()$
   step("tour-intro", "Phylogram Tour",
-    "This quick tour will acquaint you with the phylogeny tree viewer and other resources available in this section. Use the Next button or → (right arrow key) to advance the tour. Use the Prev button or ← (left arrow key) to step back.")$
+    "This quick tour will acquaint you with the phylogeny tree viewer and other resources available in this section. Use the Next button or → (right arrow key) to advance the tour. Use the Previous button or ← (left arrow key) to step back.")$
   step("phylogramFamilyInfo", "Gene Family Name",
     "The gene family name and description are shown in the header. Family descriptions are derived from homology-based functional analysis of the hidden Markov model representing the known sequences in the family, and include InterPro and Gene Ontology identifiers.")$
   step("tour-phylotree", "Phylogram",

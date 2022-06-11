@@ -256,6 +256,7 @@ function highlightUserSequences() {
     .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name))
     .each(function(d) {
       d.bbox = this.getBBox();
+      if (d.bbox.x < -1) d.bbox.x = d.bbox.x + d.bbox.width; // to correctly highlight sequences on the left side of the radial layout
     });
   var top = Infinity;
   d3.selectAll('g.tnt_tree_node')

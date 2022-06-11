@@ -245,16 +245,21 @@ function drawDistanceScale(width) {
   );
 }
 
+function nontrivialMatch(str1, str2) {
+  if (str1 == '' || str2 == '') return false;
+  return str1.includes(str2);
+}
+
 function highlightUserSequences() {
   var highlightedProteins = sessionStorage.getItem("highlightedProteins")
   d3.selectAll('text.tnt_tree_label')
-    .filter((d) => d.name.toLowerCase().startsWith('usr') || highlightedProteins.includes(d.name))
+    .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name))
     .each(function(d) {
       d.bbox = this.getBBox();
     });
   var top = Infinity;
   d3.selectAll('g.tnt_tree_node')
-    .filter((d) => d.name.toLowerCase().startsWith('usr') || highlightedProteins.includes(d.name))
+    .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name))
     .insert('svg:rect', ':first-child')
     .attr('x', (d) => {
       if (d.textAnchor === 'end') {

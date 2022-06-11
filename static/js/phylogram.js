@@ -221,7 +221,7 @@ function drawPhylotree(elementId) {
   drawDistanceScale(width);
 
   // wrap in timeout in order to wait to render the tree before computing label bounding boxes
-  setTimeout(highlightUserSequences, 1000);
+  setTimeout(highlightSequences, 1000);
 }
 
 function isRootNode(node) {
@@ -250,17 +250,19 @@ function nontrivialMatch(str1, str2) {
   return str1.includes(str2);
 }
 
-function highlightUserSequences() {
+// Highlight if (a) user sequence, (b) specified in URL, (c) selected in MSA
+function highlightSequences() {
   var highlightedProteins = sessionStorage.getItem("highlightedProteins")
+  var msaSelectedProteins = msaSelected();
   d3.selectAll('text.tnt_tree_label')
-    .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name))
+    .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name) || nontrivialMatch(msaSelectedProteins, d.name))
     .each(function(d) {
       d.bbox = this.getBBox();
       if (d.bbox.x < -1) d.bbox.x = d.bbox.x + d.bbox.width; // to correctly highlight sequences on the left side of the radial layout
     });
   var top = Infinity;
   d3.selectAll('g.tnt_tree_node')
-    .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name))
+    .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name) || nontrivialMatch(msaSelectedProteins, d.name))
     .insert('svg:rect', ':first-child')
     .attr('x', (d) => {
       if (d.textAnchor === 'end') {
@@ -386,7 +388,7 @@ function doCollapseExpand() {
   gSelectedNode.toggle();
   gPhylotree.update();
   setTimeout(() => { updateXAxis(); }, 500);
-  highlightUserSequences();
+  highlightSequences();
 
   gSelectedNode = null;
 }
@@ -630,6 +632,13 @@ shinyjs.setMSA = function(args) {
   // to effect autoResize for height (= show more or less rows when manually resizing)
   gMsaView.g.zoomer.autoHeight();
   $('#msa').height(225);
+  // to redraw phylotree on MSA selection
+  gMsaView.g.on("row:click", function(data) {
+    drawPhylotree("phylotree");
+  });
+  gMsaView.g.selcol.on("reset", function() {
+    drawPhylotree("phylotree");
+  });
 
   drawMSAView();
 }
@@ -650,6 +659,18 @@ function drawMSAView() {
   }
 
   gMsaView.render();
+}
+
+// Return the selected rows (sequence names), as a comma-separated string
+function msaSelected() {
+  var ss = '';
+  for (var i = 0; i < gMsaView.g.selcol.length; i++) {
+    var seqId = gMsaView.g.selcol.at(i).get('seqId');
+    var seqName = gMsaView.seqs._byId[seqId].get('name');
+    if (i > 0) ss = ss + ',';
+    ss = ss + seqName;
+  }
+  return ss;
 }
 
 // =============================================================

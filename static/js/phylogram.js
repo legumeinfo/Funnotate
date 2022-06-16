@@ -77,7 +77,7 @@ function fnv32a(str, hashSize) {
   */
   var FNV1_32A_INIT = 0x811c9dc5;
   var hval = FNV1_32A_INIT;
-  for ( var i = 0; i < str.length; ++i ) {
+  for (var i = 0; i < str.length; i++) {
     hval ^= str.charCodeAt(i);
     hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
   }
@@ -258,7 +258,7 @@ function highlightSequences() {
     .filter((d) => d.name.toLowerCase().startsWith('usr') || nontrivialMatch(highlightedProteins, d.name) || nontrivialMatch(msaSelectedProteins, d.name))
     .each(function(d) {
       d.bbox = this.getBBox();
-      if (d.bbox.x < -1) d.bbox.x = d.bbox.x + d.bbox.width; // to correctly highlight sequences on the left side of the radial layout
+      if (d.bbox.x < -1) d.bbox.x += d.bbox.width; // to correctly highlight sequences on the left side of the radial layout
     });
   var top = Infinity;
   d3.selectAll('g.tnt_tree_node')
@@ -552,7 +552,7 @@ function countTaxa(tree) {
       }
     }
     if (taxon in count) {
-      count[taxon] = count[taxon] + 1;
+      ++count[taxon];
     } else {
       count[taxon] = 1;
     }
@@ -667,8 +667,8 @@ function msaSelected() {
   for (var i = 0; i < gMsaView.g.selcol.length; i++) {
     var seqId = gMsaView.g.selcol.at(i).get('seqId');
     var seqName = gMsaView.seqs._byId[seqId].get('name');
-    if (i > 0) ss = ss + ',';
-    ss = ss + seqName;
+    if (i > 0) ss += ',';
+    ss += seqName;
   }
   return ss;
 }

@@ -22,5 +22,13 @@
   stroke: grey;
 }
 
+g.singleton-node > circle {
+  visibility: hidden;
+}
+
+g.singleton-node.singleton-node-visible > circle {
+  visibility: visible;
+}
+
 /* ========================================================== */
 

@@ -629,6 +629,34 @@ createSummaryTable <- function(job) {
 
 # --------------------------------------------------------------
 
+# Given an MSA and a Newick tree with the same sequences,
+# return the MSA rearranged into the same order as in the tree
+msaOrderedLikeTree <- function(msa_in, tree) {
+  # sequence names from the tree (top to bottom)
+  tree_names <- stri_match_all(tree, regex = "[\\(\\,]([^\\(\\,\\:]+)\\:")[[1]][, 2]
+
+  # msa_in is a single string with rows separated by newlines,
+  # so convert it to individual rows (like a FASTA file)
+  msa1 <- unlist(strsplit(msa_in, split = "\n"))
+  nr <- length(msa1) # total number of rows (lines)
+  ss <- which(startsWith(msa1, ">")) # indices of rows containing sequence name (= first row of each sequence)
+  ee <- c(ss[-1] - 1, nr) # indices of last row of each sequence
+
+  # put the sequences in the correct order (that of the tree)
+  oo <- order(match(substring(msa1[ss], 2), tree_names))
+  msa2 <- character(nr)
+  l <- 0
+  for (o in oo) {
+    nl <- ee[o] - ss[o] + 1 # number of lines in the oth sequence
+    msa2[l + 1:nl] <- msa1[ss[o]:ee[o]]
+    l <- l + nl
+  }
+
+  # combine all rows into a single string (separated by newlines)
+  msa_out <- paste(msa2, collapse = "\n")
+  msa_out
+}
+
 # Write sequences and their names for a given (job, gene family) to a temporary file for input to Lorax
 # TODO: better description, refactoring
 buildUserPhylogram <- function(job, family) {
@@ -651,7 +679,7 @@ buildUserPhylogram <- function(job, family) {
     newickTree <- rawToChar(treeResponse$content)
     msa <- rawToChar(msaResponse$content)
     userPhylogramInfo$tree <- trimws(newickTree)
-    userPhylogramInfo$msa <- trimws(msa)
+    userPhylogramInfo$msa <- msaOrderedLikeTree(trimws(msa), userPhylogramInfo$tree)
     userPhylogramInfo$done <- TRUE
     return(userPhylogramInfo)
   }
@@ -691,7 +719,7 @@ buildUserPhylogram <- function(job, family) {
     # success
     userPhylogramInfo$seqNames <- userSeqNames
     userPhylogramInfo$tree <- trimws(newickTree)
-    userPhylogramInfo$msa <- trimws(msa)
+    userPhylogramInfo$msa <- msaOrderedLikeTree(trimws(msa), userPhylogramInfo$tree)
     userPhylogramInfo$done <- TRUE
     return(userPhylogramInfo)
 

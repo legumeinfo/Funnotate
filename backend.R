@@ -24,6 +24,8 @@ getGeneFamilies <- function() {
 }
 df.geneFamilies <- getGeneFamilies()
 
+legfed_prefix <- "legfed_v1_0."
+
 # LegumeMine service
 legumeMine <- initInterMine(mine = listMines()["LegumeMine"])
 
@@ -829,7 +831,7 @@ geneFamilySearchQuery <- function(keywords) {
 
 genesToProteinsQuery <- function(family, genes) {
   # add prefix to restore full-yuck gene family name for the query
-  family <- paste0("legfed_v1_0.", family)
+  family <- paste0(legfed_prefix, family)
 
   # convert genes to character vector
   genes <- unlist(strsplit(URLdecode(genes), split = ","))

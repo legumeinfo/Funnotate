@@ -365,7 +365,7 @@ server <- function(input, output, session) {
       gfds <- gsub(go, link.go, gfds)
     }
     output$phylogramFamilyInfo <- renderUI(HTML(
-      sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, paste(gfds, collapse = "; "))
+      sprintf("<b>%s%s</b>: %s", legfed_prefix, phylogramInfo$family, paste(gfds, collapse = "; "))
     ))
 
     if (!is.null(phylogramInfo$tree)) {

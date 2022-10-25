@@ -64,11 +64,11 @@ server <- function(input, output, session) {
           displayPhylogram(existingJob, loraxResults)
         }
       } else if (!is.null(family) && !is.null(urlFields$gene_name)) {
-        proteins <- genesToProteinsQuery(family, urlFields$gene_name)
         nullJob <- NULL
         existingPhylogram <- buildUserPhylogram(nullJob, family)
         if (!is.null(existingPhylogram)) {
           whichPage <- "phylogram"
+          proteins <- genesToProteinsQuery(family, urlFields$gene_name)
           existingPhylogram$seqNames <- proteins
           displayPhylogram(nullJob, existingPhylogram, proteins)
         }

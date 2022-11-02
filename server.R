@@ -48,6 +48,35 @@ server <- function(input, output, session) {
           whichPage <- "phylogram"
           displayPhylogram(nullJob, existingPhylogram)
         }
+      } else if (!is.null(urlFields$gene_name)) {
+        df_gene_families <- genesToGeneFamiliesQuery(urlFields$gene_name)
+        numRows <- nrow(df_gene_families)
+        if (df_gene_families$description[numRows] == "Not found" || numRows > 1) {
+          # post gene family selection page
+          whichPage <- "geneFamilySelection"
+          output$familySelectTable <- renderDT({
+            dt <- datatable(df_gene_families[, c("link", "description", "genes")], escape = FALSE,
+              options = list(pageLength = 10), rownames = FALSE, colnames = c("Gene Family", "Description", "Genes")
+            )
+            dt
+          })
+        } else {
+          # go directly to phylogram page for this family, as for (family & gene_name) query below
+          family <- df_gene_families$geneFamily[1]
+          # strip full-yuck prefix (if any) to extract the L_xxxxxx part of the family name
+          family <- stri_match_first(family, regex=".*(L_.+$)")[, 2]
+          nullJob <- NULL
+          existingPhylogram <- buildUserPhylogram(nullJob, family)
+          if (!is.null(existingPhylogram)) {
+            whichPage <- "phylogram"
+            gene_name <- df_gene_families$gene_name[1]
+            proteins <- genesToProteinsQuery(family, gene_name)
+            existingPhylogram$seqNames <- proteins
+            displayPhylogram(nullJob, existingPhylogram, proteins)
+            # reset URL
+            updateQueryString(sprintf("?family=%s&gene_name=%s", family, gene_name))
+          }
+	}
       } else if (!is.null(urlFields$search)) {
         # gene family functional keyword search
         whichPage <- "geneFamilySearch"
@@ -64,11 +93,11 @@ server <- function(input, output, session) {
           displayPhylogram(existingJob, loraxResults)
         }
       } else if (!is.null(family) && !is.null(urlFields$gene_name)) {
-        proteins <- genesToProteinsQuery(family, urlFields$gene_name)
         nullJob <- NULL
         existingPhylogram <- buildUserPhylogram(nullJob, family)
         if (!is.null(existingPhylogram)) {
           whichPage <- "phylogram"
+          proteins <- genesToProteinsQuery(family, urlFields$gene_name)
           existingPhylogram$seqNames <- proteins
           displayPhylogram(nullJob, existingPhylogram, proteins)
         }
@@ -295,7 +324,7 @@ server <- function(input, output, session) {
     job <- createNewJob(rv$upload, input$useInterpro)
     jobId <- job$id
     # For now (promises 1.0.1), use future() but eventually (promises 1.2.0) upgrade to future_promise()
-    result <- future({
+    future({
       runJob(job)
     }) %...>% {
       job <- readJob(jobId)
@@ -365,14 +394,16 @@ server <- function(input, output, session) {
       gfds <- gsub(go, link.go, gfds)
     }
     output$phylogramFamilyInfo <- renderUI(HTML(
-      sprintf("<b>legfed_v1_0.%s</b>: %s", phylogramInfo$family, paste(gfds, collapse = "; "))
+      sprintf("<b>%s%s</b>: %s", legfed_prefix, phylogramInfo$family, paste(gfds, collapse = "; "))
     ))
 
     if (!is.null(phylogramInfo$tree)) {
-       output$phylotreeHilited <- renderUI(HTML(paste(
-        "Jump to highlighted feature:",
-        paste(sprintf("<br>&bull; <a onclick='onScrollToHilite(\"%s\");'>%s</a>", phylogramInfo$seqNames, phylogramInfo$seqNames), collapse = "")
-      )))
+      if (!is.null(phylogramInfo$seqNames)) {
+        output$phylotreeHilited <- renderUI(HTML(paste(
+          "Jump to highlighted feature:",
+          paste(sprintf("<br>&bull; <a onclick='onScrollToHilite(\"%s\");'>%s</a>", phylogramInfo$seqNames, phylogramInfo$seqNames), collapse = "")
+        )))
+      }
       rv$tree <- phylogramInfo$tree
       js$setPhylotree(phylogramInfo$tree, "phylotree", paste(proteins, collapse = " ")) # sets tree data for both phylotree and taxa chart
     }

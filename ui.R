@@ -111,6 +111,13 @@ ui <- function(req) {
         DTOutput("familyTable")
       ),
 
+      # Gene family selection page
+      conditionalPanel("output.page == 'geneFamilySelection'",
+        h4("Gene Family Selection"),
+        p("Click a gene family to display its phylogram."),
+        DTOutput("familySelectTable")
+      ),
+
       # Upload page
       # TODO: show warnings and error messages
       conditionalPanel("output.page == 'upload'",

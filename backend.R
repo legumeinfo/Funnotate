@@ -24,6 +24,8 @@ getGeneFamilies <- function() {
 }
 df.geneFamilies <- getGeneFamilies()
 
+legfed_prefix <- "legfed_v1_0."
+
 # LegumeMine service
 legumeMine <- initInterMine(mine = listMines()["LegumeMine"])
 
@@ -829,7 +831,7 @@ geneFamilySearchQuery <- function(keywords) {
 
 genesToProteinsQuery <- function(family, genes) {
   # add prefix to restore full-yuck gene family name for the query
-  family <- paste0("legfed_v1_0.", family)
+  family <- paste0(legfed_prefix, family)
 
   # convert genes to character vector
   genes <- unlist(strsplit(URLdecode(genes), split = ","))
@@ -863,6 +865,57 @@ genesToProteinsQuery <- function(family, genes) {
   proteins <- runQuery(legumeMine, protein_query)
   if (length(proteins) == 0) return(character(0))
   proteins$Gene.proteins.primaryIdentifier
+}
+
+# --------------------------------------------------------------
+
+genesToGeneFamiliesQuery <- function(genes) {
+  # convert genes to character vector
+  genes <- unlist(strsplit(URLdecode(genes), split = ","))
+
+  # find gene families associated with genes
+  gene_constraints = setConstraints(
+    paths = "Gene.primaryIdentifier",
+    operators = "=",
+    values = list(genes)
+  )
+  gene_families_query = setQuery(
+    select = c(
+      "Gene.primaryIdentifier",
+      "Gene.geneFamilyAssignments.geneFamily.identifier",
+      "Gene.geneFamilyAssignments.geneFamily.description"
+    ),
+    where = gene_constraints
+  )
+  query_results <- runQuery(legumeMine, gene_families_query) # data frame if successful, list of length 0 if not
+  if (length(query_results) == 0) { #return(character(0))
+    return(data.frame(geneFamily = "", description = "Not found",
+      genes = paste0(genes, collapse = "<br>"), gene_name = "", link = ""))
+  }
+
+  # rearrange query_results to be by gene family instead of by gene
+  names(query_results) <- c("gene", "geneFamily", "description")
+  query_results <- query_results[startsWith(query_results$geneFamily, legfed_prefix), ]
+  if (nrow(query_results) == 0) { #return(character(0))
+    return(data.frame(geneFamily = "", description = "Not found",
+      genes = paste0(genes, collapse = "<br>"), gene_name = "", link = ""))
+  }
+  ff <- sort(unique(query_results$geneFamily))
+  dd <- sapply(ff, function(f) query_results$description[min(which(query_results$geneFamily == f))], USE.NAMES = FALSE)
+  gg_comma <- sapply(ff, function(f) paste(query_results$gene[which(query_results$geneFamily == f)], collapse = ","), USE.NAMES = FALSE)
+  gg_br <- gsub(",", "<br>", gg_comma)
+  df_gene_families <- data.frame(geneFamily = ff, description = dd, genes = gg_br, gene_name = gg_comma,
+    link = sprintf("<a href='?family=%s&gene_name=%s'>%s</a>", ff, gg_comma, ff))
+
+  # add non-family row for any genes not found
+  gg_found <- unlist(strsplit(gg_comma, split = ","))
+  gg_not_found <- setdiff(genes, gg_found)
+  if (length(gg_not_found) > 0) {
+    df_gene_families <- rbind(df_gene_families, data.frame(geneFamily = "", description = "Not found",
+      genes = paste0(gg_not_found, collapse = "<br>"), gene_name = "", link = ""))
+  }
+
+  df_gene_families
 }
 
 # --------------------------------------------------------------

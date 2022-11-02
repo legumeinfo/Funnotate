@@ -34,6 +34,9 @@ To view the phylogram for a gene family with sequences inserted by an existing j
 To view the phylogram for a gene family alone (with no user-supplied sequences), append ?family=<_family_>
 <br>To additionally highlight the proteins associated with specified genes from that family, append ?family=<_family_>&gene_name=<_gene1_>,<_gene2_>,<...>,<_geneN_>
 
+To automatically determine the gene family associated with one or more specified genes, append ?gene_name=<_gene1_>,<_gene2_>,<...>,<_geneN_>
+<br>If this finds more than one unique gene family, it will display the results in a table. Choose one to display its phylogram, with any related proteins highlighted.
+
 To search for gene families by functional keywords, append ?search or ?search=<_keywords_>
 
 <!-- --------------------------------------------------------------------------------- -->

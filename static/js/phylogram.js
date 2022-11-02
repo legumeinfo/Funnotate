@@ -41,6 +41,8 @@ genspToTaxon = {
   'cajca': 'Cajanus cajan',
   'chafa': 'Chamaecrista fasciculata',
   'cicar': 'Cicer arietinum',
+  'cicec': 'Cicer echinospermum',
+  'cicre': 'Cicer reticulatum',
   'glyma': 'Glycine max',
   'lencu': 'Lens culinaris',
   'lotja': 'Lotus japonicus',

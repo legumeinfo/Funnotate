@@ -189,7 +189,8 @@ ui <- function(req) {
           HTML("<span style='font-size: 9px'>(uses <a href='https://cicerone.john-coene.com' target='_blank'>Cicerone</a>)</span>"),
           HTML("&bull; <a href=https://legacy.legumeinfo.org/search/phylotree/userinfo target=_blank>Gene Family Help</a>"),
           checkboxGroupInput("phylogramToggleDisplay", label = NULL, inline = TRUE,
-            choices = c("Taxa and Legend", "MSA Visualization"), selected = "Taxa and Legend"),
+            choices = c("Taxa and Legend", "MSA Visualization", "Phylotree info"),
+            selected = c("Taxa and Legend", "Phylotree info")),
           # Taxa chart
           conditionalPanel("output.displayTaxaAndLegend == 'true'",
             hr(),
@@ -216,14 +217,16 @@ ui <- function(req) {
           ),
           # Phylotree
           hr(),
-          radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
-          conditionalPanel("output.focusOnSubtree == 'true'",
-            HTML("You have focused on a subtree."),
-            actionButton("resetSubtreeFocus", label = "Reset to full tree"),
-            div(style = "display: inline-block; vertical-align: middle;", checkboxInput("showSingletonNodes", label = "Show singleton nodes", value = TRUE))
+          conditionalPanel("output.displayPhylotreeInfo == 'true'",
+            radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
+            conditionalPanel("output.focusOnSubtree == 'true'",
+              HTML("You have focused on a subtree."),
+              actionButton("resetSubtreeFocus", label = "Reset to full tree"),
+              div(style = "display: inline-block; vertical-align: middle;", checkboxInput("showSingletonNodes", label = "Show singleton nodes", value = TRUE))
+            ),
           ),
           tags$div(id = "tour-phylotree",
-            htmlOutput("phylotreeHilited"),
+            conditionalPanel("output.displayPhylotreeInfo == 'true'", htmlOutput("phylotreeHilited")),
             HTML("<svg id='phylotreeDistanceScale'></svg>"),
             tags$div(id = "phylotree"),
             HTML(paste("<p style='font-size:9px; text-align: right;'>",

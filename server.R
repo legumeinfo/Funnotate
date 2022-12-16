@@ -439,8 +439,10 @@ server <- function(input, output, session) {
 
   output$displayTaxaAndLegend <- reactive("false")
   output$displayMSA <- reactive("false")
+  output$displayPhylotreeInfo <- reactive("false")
   outputOptions(output, "displayTaxaAndLegend", suspendWhenHidden = FALSE)
   outputOptions(output, "displayMSA", suspendWhenHidden = FALSE)
+  outputOptions(output, "displayPhylotreeInfo", suspendWhenHidden = FALSE)
 
   observeEvent(input$phylogramToggleDisplay, {
     output$displayTaxaAndLegend <- renderText(
@@ -448,6 +450,9 @@ server <- function(input, output, session) {
     )
     output$displayMSA <- renderText(
       ifelse("MSA Visualization" %in% input$phylogramToggleDisplay, "true", "false")
+    )
+    output$displayPhylotreeInfo <- renderText(
+      ifelse("Phylotree info" %in% input$phylogramToggleDisplay, "true", "false")
     )
   })
 

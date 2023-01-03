@@ -38,8 +38,8 @@ ui <- function(req) {
       singleton(tags$head(tags$script(src='https://d3js.org/d3.v3.min.js', type='text/javascript'))),
       singleton(tags$head(tags$script(src='https://tntvis.github.io/tnt.tree/build/tnt.tree.min.js', type='text/javascript'))),
       # NVD3 (for Taxa chart)
-      singleton(tags$head(tags$link(href='https://cdn.rawgit.com/novus/nvd3/v1.8.1/build/nv.d3.css', rel='stylesheet', type='text/css'))),
-      singleton(tags$head(tags$script(src='https://cdn.rawgit.com/novus/nvd3/v1.8.1/build/nv.d3.min.js', type='text/javascript'))),
+      singleton(tags$head(tags$link(href='https://cdn.jsdelivr.net/gh/novus/nvd3@v1.8.1/build/nv.d3.min.css', rel='stylesheet', type='text/css'))),
+      singleton(tags$head(tags$script(src='https://cdn.jsdelivr.net/gh/novus/nvd3@v1.8.1/build/nv.d3.min.js', type='text/javascript'))),
       # MSA Viewer
       singleton(tags$head(tags$link(href='https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.min.gz.css', rel='stylesheet', type='text/css'))),
       singleton(tags$head(tags$script(src='https://s3-eu-west-1.amazonaws.com/biojs/msa/latest/msa.min.gz.js', type='text/javascript'))),

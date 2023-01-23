@@ -1,2 +1,0 @@
-(?i)\buncharacterized
-(?i)\bunknown

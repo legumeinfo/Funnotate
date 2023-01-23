@@ -11,8 +11,8 @@ num_threads: 5
 
 # ESTScan
 estscan:
-  exe: /erdos/svengato/estscan-3.0.3/estscan
-  matrix: /erdos/svengato/smat/medicago.smat
+  exe: /erdos/funnotate/estscan-3.0.3/estscan
+  matrix: /erdos/funnotate/smat/medicago.smat
 
 # BLAST: expects the databases in indexed format (.phr, .pin, .psq)
 blast:
@@ -20,30 +20,25 @@ blast:
   # To use blastp [...] instead of blastall -p blastp [...],
   # exe: /usr/bin/blastp
   dbs:
-    - /erdos/adf/e01/lis/AHRD/blast/TAIR10_pep_20101209
-    - /erdos/adf/e01/lis/AHRD/blast/Glyma.refseq_protein.fasta
-    - /erdos/adf/e01/lis/AHRD/blast/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
+    - /erdos/funnotate/blast-dbs/TAIR10_pep_20101209
+    - /erdos/funnotate/blast-dbs/Glyma.refseq_protein.fasta
+    - /erdos/funnotate/blast-dbs/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
 
 # AHRD
 ahrd:
   java: /usr/bin/java
-  jar: /erdos/svengato/AHRD/ahrd.jar
-  # Possible alternatives?
-  # java: /erdos/adf/sw/jdk1.7.0/bin/java
-  # jar: /erdos/adf/e01/lis/AHRD/2.0-stable/bin/ahrd.jar
-  yml: ahrd/ahrd_nosp.yml
+  jar: /erdos/funnotate/AHRD/ahrd.jar
+  yml: /erdos/funnotate/AHRD/ahrd_nosp.yml
 
 # InterPro
 interpro:
   exe: /erdos/adf/sw/interproscan-5.3-46.0/interproscan-java1.7.sh
-  # Possible alternative:
-  # exe <- /erdos/adf/sw/interproscan-5.3-46.0/interproscan.sh
   params: -appl TIGRFAM,SMART,SUPERFAMILY,Gene3D,PIRSF,Pfam,Coils
 
 # HMMer
 hmmer:
   exe: /erdos/adf/sw/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmscan
-  db: /erdos/svengato/hmmdb/legfed_v1_0/legfed_v1_0.hmm
+  db: /erdos/funnotate/hmmdb/legfed_v1_0/legfed_v1_0.hmm
   # Unused:
   # params: [...]
   # target_families: [...]/07_family_fasta

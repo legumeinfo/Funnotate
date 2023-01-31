@@ -821,8 +821,8 @@ geneFamilySearchQuery <- function(keywords) {
   }
 
   if (!is.null(familyResults)) {
-    families <- stri_match_first(familyResults$identifier, regex = "^.+\\.(.+)$")[, 2]
-    familyResults$identifier <- sprintf("<a href='?family=%s' target='_blank'>%s</a>", families, familyResults$identifier)
+    families <- stri_match_first(familyResults$primaryIdentifier, regex = "^.+\\.(.+)$")[, 2]
+    familyResults$primaryIdentifier <- sprintf("<a href='?family=%s' target='_blank'>%s</a>", families, familyResults$primaryIdentifier)
   }
   familyResults
 }
@@ -838,7 +838,7 @@ genesToProteinsQuery <- function(family, genes) {
 
   # find all genes in family
   family_constraints = setConstraints(
-    paths = "GeneFamily.identifier",
+    paths = "GeneFamily.primaryIdentifier",
     operators = "=",
     values = list(family)
   )
@@ -882,7 +882,7 @@ genesToGeneFamiliesQuery <- function(genes) {
   gene_families_query = setQuery(
     select = c(
       "Gene.primaryIdentifier",
-      "Gene.geneFamilyAssignments.geneFamily.identifier",
+      "Gene.geneFamilyAssignments.geneFamily.primaryIdentifier",
       "Gene.geneFamilyAssignments.geneFamily.description"
     ),
     where = gene_constraints

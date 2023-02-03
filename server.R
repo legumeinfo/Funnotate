@@ -55,7 +55,7 @@ server <- function(input, output, session) {
           # post gene family selection page
           whichPage <- "geneFamilySelection"
           output$familySelectTable <- renderDT({
-            dt <- datatable(df_gene_families[, c("link", "description", "genes")], escape = FALSE,
+            dt <- datatable(df_gene_families[, c("link", "description", "genes")], escape = FALSE, selection = "none",
               options = list(pageLength = 10), rownames = FALSE, colnames = c("Gene Family", "Description", "Genes")
             )
             dt
@@ -296,7 +296,7 @@ server <- function(input, output, session) {
         output$simpleTable <- renderTable(summary$simpleTable, colnames = FALSE)
         output$summaryLabel <- renderUI(HTML(sprintf("<b>Summary Table (<a href='%s' target='_blank'>download</a>)", jobNow$summaryFile)))
         output$summaryTable <- renderDT(summary$summaryTable, rownames = FALSE,
-          colnames = summary$columnNames, escape = FALSE, options = list(pageLength = 10))
+          colnames = summary$columnNames, escape = FALSE, selection = "none", options = list(pageLength = 10))
         if (!file.exists(jobNow$summaryFile)) {
           write.table(summary$summaryTableOut, jobNow$summaryFile, sep = "\t", quote = FALSE,
             row.names = FALSE, col.names = gsub("<sup>\\d+</sup>", "", summary$columnNames))
@@ -470,7 +470,7 @@ server <- function(input, output, session) {
     output$familySearchMessage <- renderText(msg)
     output$familyTable <- renderDT({
       dt <- datatable(familyResults, escape = FALSE, options = list(pageLength = 100),
-        rownames = FALSE, colnames = c("Identifier", "Description", "Score")
+        rownames = FALSE, colnames = c("Identifier", "Description", "Score"), selection = "none"
       )
       if (!is.null(familyResults)) dt <- dt %>% formatRound(3, 2) # otherwise an error occurs
       dt

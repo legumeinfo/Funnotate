@@ -379,7 +379,12 @@ server <- function(input, output, session) {
     }
 
     # Display status/error message, if any
-    output$phylogramStatus <- renderText(phylogramInfo$message)
+    messageColor <- "black"
+    if (!is.null(phylogramInfo$message)) {
+      if (startsWith(phylogramInfo$message, "Error")) messageColor <- "red"
+      else if (startsWith(phylogramInfo$message, "Warning")) messageColor <- "orange"
+    }
+    output$phylogramStatus <- renderUI(HTML(sprintf("<div style='color: %s;'>%s</div>", messageColor, phylogramInfo$message)))
 
     # Add links to gene family/IPR/GO descriptors
     gfds <- phylogramInfo$descriptor

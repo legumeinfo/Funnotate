@@ -183,7 +183,7 @@ ui <- function(req) {
         h3("Phylogram", id = "tour-intro"),
         htmlOutput("phylogramFamilyInfo"),
         p(""),
-        textOutput("phylogramStatus"),
+        htmlOutput("phylogramStatus"),
         conditionalPanel("output.hasPhylotree == 'true'",
           actionLink("tour", "Quick Interactive Tour"),
           HTML("<span style='font-size: 9px'>(uses <a href='https://cicerone.john-coene.com' target='_blank'>Cicerone</a>)</span>"),

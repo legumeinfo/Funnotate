@@ -102,6 +102,13 @@ elapsedTimeString <- function(t0, t1) {
   ets
 }
 
+logError <- function(errMsg) {
+  errFile <- "static/error.log"
+  write(currentTimeString(), errFile, append = TRUE)
+  write(errMsg, errFile, append = TRUE)
+  write("----------------------------------------", errFile, append = TRUE)
+}
+
 # --------------------------------------------------------------
 
 # fiData =
@@ -687,113 +694,131 @@ buildUserPhylogram <- function(job, family) {
   }
 
   # Check status of phylotree computation
-  family_job <- paste(family, job$id, sep = ".")
-
-  statusUrl <- sprintf("%s/trees/%s/FastTree/status", settings$lorax$url, family_job)
-  statusResponse <- GET(statusUrl)
-  statusResult <- 42
+  # (wrap in tryCatch() to detect errors arising in Lorax)
   tryCatch({
-    statusResult <- fromJSON(rawToChar(statusResponse$content))
-  }, error = function(e) {
-    #statusResult <- 42
-  })
-  statusCode <- statusResponse$status_code
+    family_job <- paste(family, job$id, sep = ".")
+    statusUrl <- sprintf("%s/trees/%s/FastTree/status", settings$lorax$url, family_job)
+    statusResponse <- GET(statusUrl)
+    statusResult <- 42
+    tryCatch({
+      statusResult <- fromJSON(rawToChar(statusResponse$content))
+    }, error = function(e2) {
+      # ...
+    })
+    statusCode <- statusResponse$status_code
 
-  if (statusResult == -1) {
-    userPhylogramInfo$message <- "Computing phylogenetic tree, please be patient."
-    return(userPhylogramInfo)
+    if (statusResult == -1) {
+      userPhylogramInfo$message <- "Computing phylogenetic tree, please be patient."
+      return(userPhylogramInfo)
 
-  } else if (statusResult == 0) {
-    # Done computing phylogenetic tree, now parse it
-    treeUrl <- sprintf("%s/trees/%s/FastTree/tree.nwk", settings$lorax$url, family_job)
-    treeResponse <- GET(treeUrl)
-    newickTree <- rawToChar(treeResponse$content)
+    } else if (statusResult == 0) {
+      # Done computing phylogenetic tree, now parse it
+      treeUrl <- sprintf("%s/trees/%s/FastTree/tree.nwk", settings$lorax$url, family_job)
+      treeResponse <- GET(treeUrl)
+      newickTree <- rawToChar(treeResponse$content)
 
-    userSeqNames <- paste0("USR.", stri_match_all(newickTree, regex = sprintf("%s\\.([^\\:]+)\\:", job$id))[[1]][, 2])
-    newickTree <- gsub(job$id, "USR", newickTree)
+      userSeqNames <- paste0("USR.", stri_match_all(newickTree, regex = sprintf("%s\\.([^\\:]+)\\:", job$id))[[1]][, 2])
+      newickTree <- gsub(job$id, "USR", newickTree)
 
-    # Return the multiple sequence alignment as well
-    msaUrl <- sprintf("%s/trees/%s/alignment", settings$lorax$url, family_job)
-    msaResponse <- GET(msaUrl)
-    msa <- rawToChar(msaResponse$content)
-    msa <- gsub(job$id, "USR", msa)
+      # Return the multiple sequence alignment as well
+      msaUrl <- sprintf("%s/trees/%s/alignment", settings$lorax$url, family_job)
+      msaResponse <- GET(msaUrl)
+      msa <- rawToChar(msaResponse$content)
+      msa <- gsub(job$id, "USR", msa)
 
-    # success
-    userPhylogramInfo$seqNames <- userSeqNames
-    userPhylogramInfo$tree <- trimws(newickTree)
-    userPhylogramInfo$msa <- msaOrderedLikeTree(trimws(msa), userPhylogramInfo$tree)
-    userPhylogramInfo$done <- TRUE
-    return(userPhylogramInfo)
-
-  } else if (statusCode == 404) {
-    # Phylogenetic tree computation not yet started
-
-    # Find matching sequences for family, and write them to a temporary file to upload to Lorax
-    df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-    ff.matches <- (df.summary.txt$Gene.Family == family)
-    seqNames <- df.summary.txt$Query[ff.matches]
-    numMatchingSequences <- length(seqNames)
-    if (numMatchingSequences == 0) {
-      userPhylogramInfo$message <- paste("No matching sequences for", family)
+      # success
+      userPhylogramInfo$seqNames <- userSeqNames
+      userPhylogramInfo$tree <- trimws(newickTree)
+      userPhylogramInfo$msa <- msaOrderedLikeTree(trimws(msa), userPhylogramInfo$tree)
       userPhylogramInfo$done <- TRUE
       return(userPhylogramInfo)
-    }
-    seqNames <- gsub("[|:]", ".", seqNames) # to prevent FASTA parser from treating them as delimiters
-    # ---
-    fasta <- readAAStringSet(job$inputFile) # original or translated protein sequence
-    allSeqNames <- names(fasta)
-    allSequences <- as.character(fasta)
-    # ---
-    seqFile <- tempfile()
-    if (file.exists(seqFile)) {
-      # TODO: do we need this?
-      unlink(seqFile)
-      system(paste("touch", seqFile))
-    }
-    for (sn in seqNames) {
-      i <- which(grepl(sn, allSeqNames))
-      write(paste0(">", allSeqNames[i]), seqFile, append = TRUE)
-      # split FASTA sequences into lines of at most 60 characters
-      ss <- unlist(stri_match_all(allSequences[i], regex = ".{1,60}"))
-      for (s in ss) write(s, seqFile, append = TRUE)
-    }
 
-    # Upload (POST) matching sequences to Lorax
-    sequencesUrl <- sprintf("%s/trees/%s/sequences", settings$lorax$url, family_job)
-    sequencesResponse <- POST(sequencesUrl, body = list(peptide = upload_file(seqFile)), verbose())
-    sequencesCode <- sequencesResponse$status_code
+    } else if (statusCode == 404) {
+      # Phylogenetic tree computation not yet started
 
-    # Clean up
-    if (file.exists(seqFile)) unlink(seqFile)
-
-    if (sequencesCode == 500) {
-      # Internal Server Error
-      userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree for %s (no sequences).", sequencesCode, family)
-      userPhylogramInfo$done <- TRUE
-      return(userPhylogramInfo)
-    } else if (sequencesCode != 200) {
-      userPhylogramInfo$message <- sprintf("Error %d: Sequence upload for tree computation was not successful.", sequencesCode)
-      userPhylogramInfo$done <- TRUE
-      return(userPhylogramInfo)
-    } else {
-      # Tree computation using hmmalign
-      hmmalignUrl <- sprintf("%s/trees/%s/hmmalign_FastTree", settings$lorax$url, family_job)
-      hmmalignResponse <- GET(hmmalignUrl)
-      hmmalignCode <- hmmalignResponse$status_code
-      if (hmmalignCode != 200) {
-        userPhylogramInfo$message <- sprintf("Error %d: Launch of tree computation was not successful.", hmmalignCode)
+      # Find matching sequences for family, and write them to a temporary file to upload to Lorax
+      df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+      ff.matches <- (df.summary.txt$Gene.Family == family)
+      seqNames <- df.summary.txt$Query[ff.matches]
+      numMatchingSequences <- length(seqNames)
+      if (numMatchingSequences == 0) {
+        userPhylogramInfo$message <- paste("No matching sequences for", family)
         userPhylogramInfo$done <- TRUE
-      } else {
-        userPhylogramInfo$message <- "Tree computation launched successfully."
+        logError(sprintf("%s (job %s)", userPhylogramInfo$message, job$id))
+        return(userPhylogramInfo)
       }
+      seqNames <- gsub("[|:]", ".", seqNames) # to prevent FASTA parser from treating them as delimiters
+      # ---
+      fasta <- readAAStringSet(job$inputFile) # original or translated protein sequence
+      allSeqNames <- names(fasta)
+      allSequences <- as.character(fasta)
+      # ---
+      seqFile <- tempfile()
+      if (file.exists(seqFile)) {
+        # TODO: do we need this?
+        unlink(seqFile)
+        system(paste("touch", seqFile))
+      }
+      for (sn in seqNames) {
+        i <- which(grepl(sn, allSeqNames))
+        write(paste0(">", allSeqNames[i]), seqFile, append = TRUE)
+        # split FASTA sequences into lines of at most 60 characters
+        ss <- unlist(stri_match_all(allSequences[i], regex = ".{1,60}"))
+        for (s in ss) write(s, seqFile, append = TRUE)
+      }
+
+      # Upload (POST) matching sequences to Lorax
+      sequencesUrl <- sprintf("%s/trees/%s/sequences", settings$lorax$url, family_job)
+      sequencesResponse <- POST(sequencesUrl, body = list(peptide = upload_file(seqFile)), verbose())
+      sequencesCode <- sequencesResponse$status_code
+
+      # Clean up
+      if (file.exists(seqFile)) unlink(seqFile)
+
+      if (sequencesCode == 500) {
+        # Internal Server Error
+        userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree for %s (no sequences).", sequencesCode, family)
+        userPhylogramInfo$done <- TRUE
+        logError(sprintf("%s (job %s)", userPhylogramInfo$message, job$id))
+        return(userPhylogramInfo)
+      } else if (sequencesCode != 200) {
+        userPhylogramInfo$message <- sprintf("Error %d: Sequence upload for tree computation was not successful.", sequencesCode)
+        userPhylogramInfo$done <- TRUE
+        logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family, job$id))
+        return(userPhylogramInfo)
+      } else {
+        # Tree computation using hmmalign
+        hmmalignUrl <- sprintf("%s/trees/%s/hmmalign_FastTree", settings$lorax$url, family_job)
+        hmmalignResponse <- GET(hmmalignUrl)
+        hmmalignCode <- hmmalignResponse$status_code
+        if (hmmalignCode != 200) {
+          userPhylogramInfo$message <- sprintf("Error %d: Launch of tree computation was not successful.", hmmalignCode)
+          userPhylogramInfo$done <- TRUE
+          logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family, job$id))
+        } else {
+          userPhylogramInfo$message <- "Tree computation launched successfully."
+        }
+        return(userPhylogramInfo)
+      }
+
+    } else {
+      userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree.", statusCode)
+      userPhylogramInfo$done <- TRUE
+      logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family, job$id))
       return(userPhylogramInfo)
     }
-
-  } else {
-    userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree.", statusCode)
+  }, warning = function(w) {
+    # Report Lorax warnings (note that w alone returns a less specific message)
+    userPhylogramInfo$message <- paste(w, "<br>The Funnotate sysadmin has been notified.")
     userPhylogramInfo$done <- TRUE
+    logError(sprintf("%s (family %s, job %s)", trimws(as.character(w)), family, job$id))
     return(userPhylogramInfo)
-  }
+  }, error = function(e) {
+    # Report Lorax errors (note that e alone returns a less specific message)
+    userPhylogramInfo$message <- paste(e, "<br>The Funnotate sysadmin has been notified. Please try again later.")
+    userPhylogramInfo$done <- TRUE
+    logError(sprintf("%s (family %s, job %s)", trimws(as.character(e)), family, job$id))
+  })
 }
 
 # --------------------------------------------------------------

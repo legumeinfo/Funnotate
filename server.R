@@ -323,8 +323,7 @@ server <- function(input, output, session) {
     # Prepare and run the job
     job <- createNewJob(rv$upload, input$useInterpro)
     jobId <- job$id
-    # For now (promises 1.0.1), use future() but eventually (promises 1.2.0) upgrade to future_promise()
-    future({
+    future_promise({
       runJob(job)
     }) %...>% {
       job <- readJob(jobId)

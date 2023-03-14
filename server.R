@@ -124,6 +124,7 @@ server <- function(input, output, session) {
   observeEvent(c(input$uhome, input$jhome), {
     updateTextAreaInput(session, "seqText", value = "")
     reset("seqFile") # fileInput clears text, but input$seqFile data still exist
+    output$seqError <- renderUI("")
     output$page <- renderText("home")
     clearQueryString()
   }, ignoreInit = TRUE)
@@ -139,26 +140,38 @@ server <- function(input, output, session) {
   observeEvent(input$upload, {
     seqText <- trimws(input$seqText)
     seqType <- substr(input$seqType, 1, 1)
-    if (input$seqSource == "From text") {
-      # read sequence(s) from text area
-      seqSize <- nchar(seqText)
-      if (seqSize == 0) return() # TODO: post error message
-      # save to temporary file
-      seqFile <- tempfile()
-      write(seqText, seqFile)
-      seq <- list(name = "Pasted sequence(s)", size = seqSize, datapath = seqFile)
-      upload <- createNewUpload(seq, seqType)
-      unlink(seqFile)
-    } else {
-      # read sequence(s) from file
-      if (is.null(input$seqFile)) return() # TODO: post error message
-      upload <- createNewUpload(input$seqFile, seqType)
-    }
-    rv$upload <- upload
-    displayUpload(upload)
+    seqFile <- NULL
+    tryCatch({
+      if (input$seqSource == "From text") {
+        # read sequence(s) from text area
+        seqSize <- nchar(seqText)
+        if (seqSize == 0) {
+          output$seqError <- renderUI("Error: No sequence found")
+          return()
+        }
+        # save to temporary file
+        seqFile <- tempfile()
+        write(seqText, seqFile)
+        seq <- list(name = "Pasted sequence(s)", size = seqSize, datapath = seqFile)
+        upload <- createNewUpload(seq, seqType)
+      } else {
+        # read sequence(s) from file
+        if (is.null(input$seqFile)) {
+          output$seqError <- renderUI("Error: No sequence file found")
+          return()
+        }
+        upload <- createNewUpload(input$seqFile, seqType)
+      }
+      rv$upload <- upload
+      displayUpload(upload)
 
-    output$page <- renderText("upload")
-    updateQueryString(sprintf("?upload=%d", rv$upload$index))
+      output$page <- renderText("upload")
+      updateQueryString(sprintf("?upload=%d", rv$upload$index))
+    }, error = function(e) {
+      output$seqError <- renderUI("Error: Sequence(s) not valid FASTA")
+    }, finally = {
+      if (!is.null(seqFile)) unlink(seqFile)
+    })
   })
 
   clearJobPage <- function() {

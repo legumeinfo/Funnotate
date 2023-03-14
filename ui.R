@@ -72,6 +72,7 @@ ui <- function(req) {
         conditionalPanel("input.seqSource == 'From file'", fileInput("seqFile", label = NULL)),
         radioButtons("seqType", label = "Type of sequence", choices = c("nucleotide", "protein")),
         actionButton("upload", "Upload Sequence(s)"),
+        htmlOutput("seqError", style = "color: red"),
         p(""),
         wellPanel(HTML(paste(
           "Annotation pipeline:",

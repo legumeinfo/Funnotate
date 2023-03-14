@@ -127,7 +127,6 @@ createNewUpload <- function(fiData, seqType) {
     write("1", indexFile)
   }
   nextIndex <- scan(indexFile, what = integer())
-  write(as.character(nextIndex + 1), indexFile)
 
   # Create the upload - fields set to NA will be filled in below
   upload <- list(
@@ -197,6 +196,7 @@ createNewUpload <- function(fiData, seqType) {
     #   ))
   }
 
+  write(as.character(nextIndex + 1), indexFile)
   write_yaml(upload, upload$uploadFile)
   upload
 }

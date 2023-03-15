@@ -659,6 +659,7 @@ gMsaView = null;
 shinyjs.setMSA = function(args) {
   // Replace special characters in sequence names to prevent FASTA parser from treating them as delimiters
   var seqs = msa.io.fasta.parse(args[0].replaceAll("|", ".").replaceAll(":", "."));
+  sessionStorage.setItem('msaSeqs', JSON.stringify(seqs));
   var elementId = args[1];
   var msaElement = document.getElementById(elementId);
   msaElement.innerHTML = "";
@@ -699,16 +700,21 @@ function drawMSAView() {
   if (taxa !== null) taxa = JSON.parse(taxa);
   var rootNode = (gFocusedNode == null ? gPhylotree.root() : gFocusedNode);
   var visibleNodes = rootNode.get_all_leaves().map(function(node) { return node.node_name(); });
-  for (var s = 0; s < gMsaView.seqs.length; s++) {
-    var s_name = gMsaView.seqs.at(s).get('name');
-    var gensp = s_name.substring(0, 5);
+
+  // Reload the sequences and set their 'hidden' attribute according to current visibility,
+  // then call seqs.reset() which is much faster than set("hidden", !visible) for each one
+  var seqs = JSON.parse(sessionStorage.getItem('msaSeqs'));
+  for (seq of seqs) {
+    var seqName = seq["name"];
+    var gensp = seqName.substring(0, 5);
     if (gensp.startsWith("USR")) gensp = "USR";
 
     var visible = (taxa === null || taxa.includes(gensp));
-    var isAncestor = (gFocusedNode != null && gFocusedNode.find_node_by_name(s_name) != null);
-    visible &&= ((gFocusedNode === null || isAncestor) && visibleNodes.includes(s_name));
-    gMsaView.seqs.at(s).set('hidden', !visible);
+    var isAncestor = (gFocusedNode != null && gFocusedNode.find_node_by_name(seqName) != null);
+    visible &&= ((gFocusedNode === null || isAncestor) && visibleNodes.includes(seqName));
+    seq["hidden"] = !visible;
   }
+  gMsaView.seqs.reset(seqs);
 
   gMsaView.render();
 }

@@ -421,7 +421,6 @@ server <- function(input, output, session) {
           paste(sprintf("<br>&bull; <a onclick='onScrollToHilite(\"%s\");'>%s</a>", phylogramInfo$seqNames, phylogramInfo$seqNames), collapse = "")
         )))
       }
-      rv$tree <- phylogramInfo$tree
       js$setPhylotree(phylogramInfo$tree, "phylotree", paste(proteins, collapse = " ")) # sets tree data for both phylotree and taxa chart
     }
 
@@ -437,7 +436,7 @@ server <- function(input, output, session) {
   observeEvent(input$phylotreeLayout, {
     layout <- stri_match_first(input$phylotreeLayout, regex = "^(.+) layout$")[, 2]
     js$setPhylotreeLayout(layout, "phylotree");
-  })
+  }, ignoreInit = TRUE)
 
   output$hasPhylotree <- reactive("false")
   outputOptions(output, "hasPhylotree", suspendWhenHidden = FALSE)

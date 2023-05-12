@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+<title>Gene Family Help</title>
+</head>
+
+<body>
+<h1>HOW TO: Gene Family Search</h1>
+(<a href="../?search">Go to</a> gene family search)
+<div>
+<p>
+This page lets you search for gene families starting from a legume gene family ID (e.g., legfed_v1_0.L_2951WH) or words from the description of the gene family (e.g., iron homeostasis or chlorophyll binding protein); family descriptions are derived from homology-based functional analysis of the hidden Markov model representing the known sequences in the family, and include Interpro and Gene Ontology identifiers which may be included in the search. You may leave any of the search fields blank if you don't care about the field, or specify several criteria together (all filters will be ANDed together). The gene families were calculated in 2018, as part of the LegumeFederation project. The full family set is available <a href="https://data.legumeinfo.org/LEGUMES/Fabaceae/genefamilies/legume.genefam.fam1.M65K/">here</a>.
+</p>
+<h2>The result table</h2>
+<p>The resulting table shows the Family ID and description along with the membership counts in different species. The table can be sorted by clicking on the column headers (clicking a header again will reverse the order of the sort).
+<ul>
+  <li>
+    The <u>Family ID links to a page displaying a phylogram</u> of all its members (a phylogenetic tree that has branch spans proportional to the amount of character change), including both legumes and non-legumes, and helps reveal a probable evolutionary history leading to the current set of genes in the family (e.g. orthology and paralogy relationships).
+  </li>
+  <li>
+    The <u>counts under a given species are linked to the 'Genes search'</u> and lists the gene IDs (gene models) of the species that are members of this gene family. From here, details pertaining to the genes can be explored further using the typical gene search results capabilities.
+  </li>
+  <li>
+    The <u>total counts</u> are also linked to the 'Genes page' listing only the legume genes that are currently in the LIS database (note that the number displayed for the total count includes the genes for all species included in the tree, and will typically be somewhat larger than the count of the legume genes retrieved in this way).
+  </li>
+</ul>
+<h2>The phylogram</h2>
+The <u>phylogram</u> page displays a phylogenetic tree that has branch spans proportional to the amount of character change, including both legumes and selected non-legumes. Alternatively, you can also display the tree in the form of a <u>circular dendrogram</u> (when a large number of genes are in the tree, this view will not allow you to see the fine details, but does give a concise overview of the topology of the tree and how gene content from different species is distributed throughout). The <b>Taxa and Legend</b> button will toggle the display diagram illustrating their relative abundances (helpful for very large families); the legend is interactive, and the set of taxa that are displayed in the tree can be filtered by clicking on the legend entries for the taxa.
+<ul>
+  <li>
+    Click on colored leaf nodes to get more information about legume genes at LIS including its sequence, genome browser view, links to information at external sites, etc. Non-legume genes have minimal information stored in LIS and so only provide links to external sites.
+  </li>
+  <li>
+	  Click on internal (white) nodes to get options pertaining to the legume genes included in the subtree for that node. For example, the <b>GCV Multiple Alignment</b> option will take the set of genes in the subtree and retrieve a set of flanking genes, align the segments based on gene family context and allows exploration of syntenic regions from all included legume genomes. <!-- Other options include creating lists of the subtended genes in LegumeMine for further analyses. -->
+  </li>
+  <li>
+    A viewer for the multiple sequence alignment from which the tree was derived can be toggled using the <b>MSA Visualization</b> button. The viewer is interactive and will be updated when filtering is performed on the tree (e.g. if a subtree focus is chosen from an internal node, the MSA will display only the subset of proteins in the subtree).
+  </li>
+</ul>
+<h2>The Analysis</h2>
+<p>
+The gene families at LegumeInfo were calculated as part of the <a href="https://legumefederation.org">NSF LegumeFederation</a> project, as follows (to be described in more detail in a paper anticipated for late 2018). Clustering was done on the basis of gene pairs filtered for per-species Ks values. These were clustered using Markov clustering. Sequence match scores of each sequence in a family were used to identify outliers, on the basis of score value relative to the median score for the family. Remaining sequences were re-clustered, added to the HMM set. Then all sequences were searched against all HMMs, realigned, re-screened relative to median match score, and finally used to generate alignments and phylogenetic trees (using RAxML). The trees are rooted, when possible, using the closest outgroup from among five outgroup species: <i>Arabidopsis thaliana</i>, <i>Prunus persica</i>, <i>Cucumis sativa</i>, <i>Solanum lycopersicum</i>, and <i>Vitis vinifera</i>.
+</p>
+<p>
+Note: These current gene families at LegumeInfo replace (as of May, 2018) an older set of families that were built on the Phytozome 10.2 Angiosperm-level gene family models. <!-- The Phytozome-based families are still accessible by direct URL (for researchers who may have referenced particular families). The URL form for such families has the form: /chado_phylotree/phytozome_10_2.59192412 -->
+</p>
+</div>
+
+</body>
+</html>
+

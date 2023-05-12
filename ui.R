@@ -48,6 +48,8 @@ ui <- function(req) {
       singleton(tags$head(tags$script(src='https://code.jquery.com/ui/1.12.1/jquery-ui.min.js', type='text/javascript'))),
       # biojs-io-newick (for exporting tree in Newick format)
       singleton(tags$head(tags$script(src='static/js/biojs-io-newick.min.js', type='text/javascript'))),
+      # InterMine
+      singleton(tags$head(tags$script(src='static/js/im.js', type='text/javascript'))),
       # Ours (for phylotree and distance scale)
       singleton(tags$head(tags$link(href='static/css/phylogram.css', rel='stylesheet', type='text/css'))),
       singleton(tags$head(tags$script(src='static/js/phylogram.js', type='text/javascript'))),

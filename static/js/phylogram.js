@@ -121,7 +121,9 @@ function taxonToColor(taxon) {
 
 // =============================================================
 
-const LINKOUTS_BASE_URL = 'https://legacy.legumeinfo.org';
+var legumeMine = new intermine.Service({ root: 'https://mines.legumeinfo.org/legumemine/service/' });
+
+const LINKOUTS_BASE_URL = 'https://linkouts.services.legumeinfo.org';
 
 function lineWithLink(href, text) {
   return '<p><a href="' + href + '" target=_blank>' + text + '</a></p>';
@@ -353,28 +355,50 @@ function onTreeNodeClick(node) {
     if (node_name.startsWith('USR.')) node_name = node_name.substring(4);
     var gensp = node_name.substring(0, 5);
     if (gensp in genspToTaxon) {
-      var taxon = genspToTaxon[gensp];
-      taxon = taxon.split(' ');
-      var genus = taxon[0];
-      var species = taxon[1];
-      var url = LINKOUTS_BASE_URL + '/phylotree_links/' + genus + '/' + species + '/' + node_name + '/json';
-      $.getJSON(url, function(data) {
-        var content = '';
-        if (data.length > 0) {
-          $.each(data, function(d, obj) {
-            content += lineWithLink(obj.href, obj.text);
-          });
-        } else {
-          content += 'No linkouts found.';
+      // Get corresponding gene identifier from LegumeMine
+      var query = {
+        "from": "Protein",
+        "select": [
+          "genes.primaryIdentifier",
+        ],
+        "where": [
+          {
+            "path": "primaryIdentifier",
+            "op": "=",
+            "value": node_name,
+            "code": "A"
+          }
+        ]
+      };
+      legumeMine.rows(query).then(function(rows) {
+        if (rows.length == 0) {
+          showDialog(node_name, 'Non-legume, no linkouts available.');
+          return;
         }
+        var gene_id = rows[0][0];
+        var url = LINKOUTS_BASE_URL + '/gene_linkouts?genes=' + gene_id;
+        $.getJSON(url, function(data) {
+          var content = '';
+          if (data.length > 0) {
+            $.each(data, function(d, obj) {
+              content += lineWithLink(obj.href, obj.text);
+            });
+          } else {
+            content += 'No linkouts found.';
+          }
 /*
-        // for the organism and feature links (unused)
-        content += lineWithLink(LINKOUTS_BASE_URL + '/organism/' + genus + '/' + species,
-          'View organism: ' + genus + ' ' + species); // + ' (' + common_name + ')'
-        content += lineWithLink(LINKOUTS_BASE_URL + '/node/' + node.data()._id,
-          'View feature: ' + node_name);
+          // for the organism and feature links (unused)
+          var taxon = genspToTaxon[gensp];
+          taxon = taxon.split(' ');
+          var genus = taxon[0];
+          var species = taxon[1];
+          content += lineWithLink(LINKOUTS_BASE_URL + '/organism/' + genus + '/' + species,
+            'View organism: ' + genus + ' ' + species); // + ' (' + common_name + ')'
+          content += lineWithLink(LINKOUTS_BASE_URL + '/node/' + node.data()._id,
+            'View feature: ' + node_name);
 */
-        showDialog(node_fullname, content);
+          showDialog(gene_id, content);
+        });
       });
     } else {
       // phylogram leaf nodes should always have a gensp, so we may never reach here, but post a message if we do
@@ -392,20 +416,28 @@ function onTreeNodeClick(node) {
       internalNodeActions += '<p><a onclick="doFocus();">Focus on subtree at this node</a></p>';
     }
     internalNodeActions += '<p><a onclick="doExport();">Export subtree in Newick format</a></p>';
-    var url = LINKOUTS_BASE_URL + '/famreps_links';
-    var query = 'famreps=' + gSelectedNode.get_all_leaves(true).map(n => n.node_name()).join(',');
-    // add internal node linkouts, if any
-    $.post({
-      url: url,
-      data: query,
-      dataType: 'json'
-    })
-    .done(function(data) {
-      $.each(data, function(d, obj) {
-        internalNodeActions += lineWithLink(obj.href, obj.text);
-      });
-    })
-    .always(function() {
+
+    var node_names = gSelectedNode.get_all_leaves(true).map(n => n.node_name());
+    var query = {
+      "from": "Protein",
+      "select": [
+        "genes.primaryIdentifier",
+      ],
+      "where": [
+        {
+          "path": "primaryIdentifier",
+          "op": "ONE OF",
+          "values": node_names,
+          "code": "A"
+        }
+      ]
+    };
+    legumeMine.rows(query).then(function(rows) {
+      var genes = rows.join(",");
+      if (genes.length > 0) {
+        var url = 'https://gcv.legumeinfo.org/gcv2/gene;lis=' + genes;
+        internalNodeActions += lineWithLink(url, 'GCV Multiple Alignment');
+      }
       showDialog('Interior node', internalNodeActions);
     });
   }

@@ -416,10 +416,13 @@ server <- function(input, output, session) {
 
     if (!is.null(phylogramInfo$tree)) {
       if (!is.null(phylogramInfo$seqNames)) {
-        output$phylotreeHilited <- renderUI(HTML(paste(
-          "Jump to highlighted feature:",
-          paste(sprintf("<br>&bull; <a onclick='onScrollToHilite(\"%s\");'>%s</a>", phylogramInfo$seqNames, phylogramInfo$seqNames), collapse = "")
-        )))
+        highlightSeqNames <- phylogramInfo$seqNames[sapply(phylogramInfo$seqNames, function(seqName) grepl(seqName, phylogramInfo$tree), USE.NAMES = FALSE)]
+        if (length(highlightSeqNames) > 0) {
+          output$phylotreeHilited <- renderUI(HTML(paste(
+            "Jump to highlighted feature:",
+            paste(sprintf("<br>&bull; <a onclick='onScrollToHilite(\"%s\");'>%s</a>", highlightSeqNames, highlightSeqNames), collapse = "")
+          )))
+        }
       }
       js$setPhylotree(phylogramInfo$tree, "phylotree", paste(proteins, collapse = " ")) # sets tree data for both phylotree and taxa chart
     }

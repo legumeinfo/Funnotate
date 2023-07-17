@@ -54,7 +54,7 @@ ui <- function(req) {
       singleton(tags$head(tags$link(href='static/css/phylogram.css', rel='stylesheet', type='text/css'))),
       singleton(tags$head(tags$script(src='static/js/phylogram.js', type='text/javascript'))),
       extendShinyjs(script = "static/js/phylogram.js",
-        functions = c("setPhylotree", "setPhylotreeLayout", "showSingletonNodes", "clearSubtreeFocus", "resetTaxa", "setMSA")
+        functions = c("setPhylotree", "setPhylotreeLayout", "showSingletonNodes", "clearSubtreeFocus", "resetTaxa", "setMSA", "takePhylotreeSnapshot")
       ),
       tags$head(tags$script(HTML(proxyclick))),
 
@@ -222,6 +222,7 @@ ui <- function(req) {
           hr(),
           conditionalPanel("output.displayPhylotreeInfo == 'true'",
             radioButtons("phylotreeLayout", label = NULL, choices = c("Vertical layout", "Radial layout"), inline = TRUE),
+            actionLink("snapshot", "Snapshot"),
             conditionalPanel("output.focusOnSubtree == 'true'",
               HTML("You have focused on a subtree."),
               actionButton("resetSubtreeFocus", label = "Reset to full tree"),

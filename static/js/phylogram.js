@@ -266,10 +266,11 @@ function drawDistanceScale(width) {
     .attr('width', width)
     .attr('height', 40)
     .append('g')
-    .attr('transform', 'translate(20, 20)')
-    .attr('class', 'x axis')
+      .attr('transform', 'translate(20, 20)')
+      .attr('class', 'x axis')
     .call(getXAxis(gPhylotree, width)
   );
+  setXAxisAttributes();
 }
 
 function nontrivialMatch(str1, str2) {
@@ -324,6 +325,16 @@ function getXAxis(tree, width) {
 function updateXAxis() {
   d3.selectAll('#phylotreeDistanceScale g.x.axis')
     .call(getXAxis(gPhylotree, getPhylotreeWidth()));
+  setXAxisAttributes();
+}
+function setXAxisAttributes() {
+  d3.select("#phylotreeDistanceScale").select(".domain")
+    .attr('fill', 'none')
+    .attr('stroke', 'black');
+  d3.select("#phylotreeDistanceScale").selectAll("g.tick > line")
+    .attr('stroke', 'black');
+  d3.selectAll("#phylotreeDistanceScale").selectAll("g.tick > text")
+    .style('font-size', '10px');
 }
 
 // User clicked on link to sequence -> scroll to its phylotree node
@@ -680,6 +691,44 @@ shinyjs.resetTaxa = function(args) {
 // Force a resize, to redraw the chart
 function doResize() {
   window.dispatchEvent(new Event("resize"));
+}
+
+// Export phylotree (including its distance scale) to SVG file
+shinyjs.takePhylotreeSnapshot = function(args) {
+  // Distance scale
+  var svgAxis = document.getElementById("phylotreeDistanceScale");
+  var h1 = parseInt(svgAxis.getAttribute("height"));
+  // Phylotree
+  const tnt_st_id = "tnt_st_" + args[0]; // id of the svg element's child
+  var svgPhylotree = document.getElementById(tnt_st_id).parentElement;
+  var h2 = parseInt(svgPhylotree.getAttribute("height"));
+
+  var serializer = new XMLSerializer();
+  // Wrap the distance scale and phylotree in an overall SVG element
+  var source = "<svg id='combined'>";
+    source += serializer.serializeToString(svgAxis);
+    source += serializer.serializeToString(svgPhylotree);
+  source += "</svg>";
+
+  // Shift svgPhylotree down by h1
+  source = source.replace("height=\"" + h2 + "\" fill=\"none\"", "height=\"" + (h2 + h1) + "\" fill=\"none\"");
+  source = source.replace("translate(20,20)", "translate(20," + (20 + h1) + ")");
+
+  source = source.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
+  source = source.replace(/ns\d+:href/g, 'xlink:href'); // Safari NS namespace fix.
+  if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+    source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+
+  var preface = '<?xml version="1.0" standalone="no"?>\r\n';
+  var svgBlob = new Blob([preface, source], { type: "image/svg+xml;charset=utf-8" });
+  var svgUrl = URL.createObjectURL(svgBlob);
+  var downloadLink = document.createElement("a");
+  downloadLink.href = svgUrl;
+  downloadLink.download = "phylotree.svg";
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
 }
 
 // =============================================================

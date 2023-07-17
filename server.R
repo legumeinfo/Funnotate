@@ -475,6 +475,10 @@ server <- function(input, output, session) {
     )
   })
 
+  observeEvent(input$snapshot, {
+    js$takePhylotreeSnapshot("phylotree")
+  })
+
   observeEvent(input$familyKeywords, {
     # automatically click Search button if user entered keywords in the URL (which resets button value to 0)
     if (input$familySearch == 0 && nchar(input$familyKeywords) > 0) click("familySearch")

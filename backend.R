@@ -536,16 +536,21 @@ createSummaryTable <- function(job) {
       df.i <- data.frame(iit1 = blankColumn, go1 = blankColumn, iit2 = blankColumn, go2 = blankColumn, stringsAsFactors = FALSE)
     } else {
       df.ipr <- read.table(job$iprFile, header = FALSE, sep = "\t", fill = TRUE, stringsAsFactors = FALSE)
+      hasGOTermColumn <- (ncol(df.ipr) >= 14)
       # Loop over all sequences, match with first column of df.ahrd
       df.i <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
         df.ii <- df.ipr[df.ipr[, 1] == q, ]
         iit <- setdiff(unique(df.ii[, 12]), "NULL")
-        go <- stri_match_all(df.ii[, 14], regex = "\\(GO:(\\d+)\\)")
-        go <- setdiff(unique(unlist(sapply(go, function(g) g[, 2], USE.NAMES = FALSE))), NA)
         iit1 <- ifelse(length(iit) == 0, "", paste(sprintf("<a href='https://www.ebi.ac.uk/interpro/entry/%s' target='_blank'>%s</a>", iit, iit), collapse = ", "))
-        go1 <- ifelse(length(go) == 0, "", paste(sprintf("<a href='http://amigo.geneontology.org/amigo/term/GO:%s' target='_blank'>%s</a>", go, go), collapse = ", "))
         iit2 <- ifelse(length(iit) == 0, "", paste(iit, collapse = ","))
-        go2 <- ifelse(length(go) == 0, "", paste(go, collapse = ","))
+        if (hasGOTermColumn) {
+          go <- stri_match_all(df.ii[, 14], regex = "\\(GO:(\\d+)\\)")
+          go <- setdiff(unique(unlist(sapply(go, function(g) g[, 2], USE.NAMES = FALSE))), NA)
+          go1 <- ifelse(length(go) == 0, "", paste(sprintf("<a href='http://amigo.geneontology.org/amigo/term/GO:%s' target='_blank'>%s</a>", go, go), collapse = ", "))
+          go2 <- ifelse(length(go) == 0, "", paste(go, collapse = ","))
+        } else {
+          go1 <- go2 <- ""
+        }
         # InterPro id, GO terms (HTML and text format)
         c(iit1, go1, iit2, go2)
       })), stringsAsFactors = FALSE)

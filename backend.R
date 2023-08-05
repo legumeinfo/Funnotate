@@ -752,7 +752,6 @@ buildUserPhylogram <- function(job, family) {
         logError(sprintf("%s (job %s)", userPhylogramInfo$message, job$id))
         return(userPhylogramInfo)
       }
-      seqNames <- gsub("[|:]", ".", seqNames) # to prevent FASTA parser from treating them as delimiters
       # ---
       fasta <- readAAStringSet(job$inputFile) # original or translated protein sequence
       allSeqNames <- names(fasta)
@@ -765,10 +764,10 @@ buildUserPhylogram <- function(job, family) {
         system(paste("touch", seqFile))
       }
       for (sn in seqNames) {
-        i <- which(grepl(sn, allSeqNames))
-        write(paste0(">", allSeqNames[i]), seqFile, append = TRUE)
+        sn_out <- gsub("[|:]", ".", sn) # to prevent downstream Newick tree parser from treating them as delimiters
+        write(paste0(">", sn_out), seqFile, append = TRUE)
         # split FASTA sequences into lines of at most 60 characters
-        ss <- unlist(stri_match_all(allSequences[i], regex = ".{1,60}"))
+        ss <- unlist(stri_match_all(allSequences[sn], regex = ".{1,60}"))
         for (s in ss) write(s, seqFile, append = TRUE)
       }
 

@@ -917,7 +917,7 @@ genesToGeneFamiliesQuery <- function(genes) {
     where = gene_constraints
   )
   query_results <- runQuery(legumeMine, gene_families_query) # data frame if successful, list of length 0 if not
-  if (length(query_results) == 0) { #return(character(0))
+  if (length(query_results) == 0) {
     return(data.frame(geneFamily = "", description = "Not found",
       genes = paste0(genes, collapse = "<br>"), gene_name = "", link = ""))
   }
@@ -925,7 +925,7 @@ genesToGeneFamiliesQuery <- function(genes) {
   # rearrange query_results to be by gene family instead of by gene
   names(query_results) <- c("gene", "geneFamily", "description")
   query_results <- query_results[startsWith(query_results$geneFamily, legfed_prefix), ]
-  if (nrow(query_results) == 0) { #return(character(0))
+  if (nrow(query_results) == 0) {
     return(data.frame(geneFamily = "", description = "Not found",
       genes = paste0(genes, collapse = "<br>"), gene_name = "", link = ""))
   }

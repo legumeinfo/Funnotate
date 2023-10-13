@@ -741,28 +741,31 @@ buildUserPhylogram <- function(job, family) {
     } else if (statusCode == 404) {
       # Phylogenetic tree computation not yet started
 
-      # Find matching sequences for family, and write them to a temporary file to upload to Lorax
+      # Find matching sequences for family
       df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
       ff.matches <- (df.summary.txt$Gene.Family == family)
       seqNames <- df.summary.txt$Query[ff.matches]
       numMatchingSequences <- length(seqNames)
+      # If there are no matches, let the user know (and return)
       if (numMatchingSequences == 0) {
         userPhylogramInfo$message <- paste("No matching sequences for", family)
         userPhylogramInfo$done <- TRUE
         logError(sprintf("%s (job %s)", userPhylogramInfo$message, job$id))
         return(userPhylogramInfo)
       }
-      # ---
-      fasta <- readAAStringSet(job$inputFile) # original or translated protein sequence
+
+      # Read the user's original (or translated) protein sequences
+      fasta <- readAAStringSet(job$inputFile)
       allSeqNames <- names(fasta)
+      # To correctly match user sequences by name,
+      # remove any characters after and including the first whitespace
+      allSeqNames <- sapply(allSeqNames, function(sn) unlist(strsplit(sn, split = " "))[1])
+      names(fasta) <- allSeqNames
       allSequences <- as.character(fasta)
-      # ---
+
+      # Write matching sequences to a temporary file to upload to Lorax
       seqFile <- tempfile()
-      if (file.exists(seqFile)) {
-        # TODO: do we need this?
-        unlink(seqFile)
-        system(paste("touch", seqFile))
-      }
+      file.create(seqFile)
       for (sn in seqNames) {
         sn_out <- gsub("[|:]", ".", sn) # to prevent downstream Newick tree parser from treating them as delimiters
         write(paste0(">", sn_out), seqFile, append = TRUE)

@@ -22,6 +22,15 @@ proxyclick <- paste(
   "})"
 )
 
+sequenceSources <- function() {
+  seqSources <- c("From text", "From file")
+  dirExamples <- "static/examples/"
+  if (!dir.exists(dirExamples)) dir.create(dirExamples)
+  examples <- list.files(dirExamples)
+  if (length(examples) > 0) seqSources <- c(seqSources, examples)
+  seqSources
+}
+
 ui <- function(req) {
   # The `req` object is a Rook environment
   # See https://github.com/jeffreyhorner/Rook#the-environment
@@ -69,8 +78,8 @@ ui <- function(req) {
         HTML("<p>(Or search for gene families using <a href='?search'>this functional keyword search</a>.)</p>"),
         p("Because this service involves several computationally intensive searches (see pipeline description below), results can take from several minutes to several hours, depending on the size of your query. Thanks for your patience."),
         p("Upload your protein or nucleotide FASTA sequence(s) (max. 100 kbp)"),
-        radioButtons("seqSource", label = NULL, choices = c("From text", "From file"), inline = TRUE),
-        conditionalPanel("input.seqSource == 'From text'", textAreaInput("seqText", label = "Paste FASTA sequence(s) here:", width = "800px", height = "400px")),
+        radioButtons("seqSource", label = NULL, choices = sequenceSources(), inline = TRUE),
+        conditionalPanel("input.seqSource != 'From file'", textAreaInput("seqText", label = "Paste FASTA sequence(s) here:", width = "800px", height = "400px")),
         conditionalPanel("input.seqSource == 'From file'", fileInput("seqFile", label = NULL)),
         radioButtons("seqType", label = "Type of sequence", choices = c("nucleotide", "protein"), inline = TRUE),
         actionButton("upload", "Upload Sequence(s)"),

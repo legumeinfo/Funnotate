@@ -120,6 +120,15 @@ server <- function(input, output, session) {
     updateQueryString(sprintf("%s//%s%s%s", session$clientData$url_protocol, session$clientData$url_hostname, colon_port, session$clientData$url_pathname))
   }
 
+  observeEvent(input$seqSource, {
+    if (input$seqSource == "From text") {
+      updateTextAreaInput(session, "seqText", value = "")
+    } else if (input$seqSource != "From file") {
+      exampleFile <- paste0("static/examples/", input$seqSource)
+      updateTextAreaInput(session, "seqText", value = paste(readLines(exampleFile), collapse = "\n"))
+    }
+  })
+
   # TODO: use updateQueryString(q, mode = "push") ?
   observeEvent(c(input$uhome, input$jhome), {
     updateTextAreaInput(session, "seqText", value = "")
@@ -142,7 +151,7 @@ server <- function(input, output, session) {
     seqType <- substr(input$seqType, 1, 1)
     seqFile <- NULL
     tryCatch({
-      if (input$seqSource == "From text") {
+      if (input$seqSource != "From file") {
         # read sequence(s) from text area
         seqSize <- nchar(seqText)
         if (seqSize == 0) {

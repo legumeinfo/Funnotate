@@ -125,7 +125,10 @@ server <- function(input, output, session) {
       updateTextAreaInput(session, "seqText", value = "")
     } else if (input$seqSource != "From file") {
       exampleFile <- paste0("static/examples/", input$seqSource)
-      updateTextAreaInput(session, "seqText", value = paste(readLines(exampleFile), collapse = "\n"))
+      seqLines <- readLines(exampleFile)
+      seqType <- scrubber[[ifelse(isProbablyNucleotideSequence(seqLines), "n", "p")]]$sequenceType
+      updateTextAreaInput(session, "seqText", value = paste(seqLines, collapse = "\n"))
+      updateRadioButtons(session, "seqType", selected = seqType)
     }
   })
 

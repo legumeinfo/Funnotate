@@ -54,9 +54,12 @@ countBadChars <- function(ss0, ss1) {
   sum(cc0 != cc1)
 }
 
-# isProbablyNucleotideSequence <- function(ss) {
-#   ns <- nchar(ss)
-# }
+isProbablyNucleotideSequence <- function(lines) {
+  ss <- lines[!startsWith(lines, ">")]
+  ss <- tolower(unlist(strsplit(ss, split = "")))
+  nn <- unlist(strsplit(scrubber$n$goodChars, split = ""))
+  all(ss %in% nn)
+}
 
 # Create directory if it does not exist
 requireDirectory <- function(dirpath) {

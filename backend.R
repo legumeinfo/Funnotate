@@ -528,7 +528,7 @@ createSummaryTable <- function(job) {
   }
 
   # AHRD
-  df.ahrd <- read.table(job$ahrdFile, skip = 2, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  df.ahrd <- read.table(job$ahrdFile, skip = 2, header = TRUE, sep = "\t", comment.char = "", stringsAsFactors = FALSE)
   df.summary <- df.summary.txt <- df.ahrd[, 1:4]
   colnames.summary <- c("Query", "AHRD BLAST Hit", "AHRD Quality<sup>3</sup>", "AHRD Descriptor")
   blankColumn <- rep("", nrow(df.summary))
@@ -538,7 +538,7 @@ createSummaryTable <- function(job) {
     if (!file.exists(job$iprFile)) {
       df.i <- data.frame(iit1 = blankColumn, go1 = blankColumn, iit2 = blankColumn, go2 = blankColumn, stringsAsFactors = FALSE)
     } else {
-      df.ipr <- read.table(job$iprFile, header = FALSE, sep = "\t", fill = TRUE, stringsAsFactors = FALSE)
+      df.ipr <- read.table(job$iprFile, header = FALSE, sep = "\t", fill = TRUE, comment.char = "", stringsAsFactors = FALSE)
       hasGOTermColumn <- (ncol(df.ipr) >= 14)
       # Loop over all sequences, match with first column of df.ahrd
       df.i <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
@@ -607,7 +607,7 @@ createSummaryTable <- function(job) {
   df.blast <- list()
   ii <- which(file.exists(job$blastFiles))
   for (i in ii) {
-    df.blast[[i]] <- read.table(job$blastFiles[i], header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+    df.blast[[i]] <- read.table(job$blastFiles[i], header = FALSE, sep = "\t", comment.char = "", stringsAsFactors = FALSE)
   }
   # Loop over all sequences, match with first column of df.ahrd
   df.b <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
@@ -745,7 +745,7 @@ buildUserPhylogram <- function(job, family) {
       # Phylogenetic tree computation not yet started
 
       # Find matching sequences for family
-      df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+      df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", comment.char = "", stringsAsFactors = FALSE)
       ff.matches <- (df.summary.txt$Gene.Family == family)
       seqNames <- df.summary.txt$Query[ff.matches]
       numMatchingSequences <- length(seqNames)

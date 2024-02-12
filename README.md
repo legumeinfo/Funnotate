@@ -25,19 +25,31 @@ Clicking a <img src="static/tools-512.png" width="16px" height="16px"> icon in t
 
 View the application [here](https://funnotate.legumeinfo.org).
 
-To review a previously uploaded sequence set (for example, to launch a new annotation job), append ?upload=<_upload_index_>
+### URL query strings
 
-To review an existing annotation job, append ?job=<_job_id_>
+To review a previously uploaded sequence set (for example, to launch a new annotation job), append
+<br>&nbsp;&nbsp; _?upload=<_upload_index_>_
+<br>to the base URL.
 
-To view the phylogram for a gene family with sequences inserted by an existing job, append ?family=<_family_>&job=<_job_id_>
+To review an existing annotation job, append
+<br>&nbsp;&nbsp; _?job=<_job_id_>_
 
-To view the phylogram for a gene family alone (with no user-supplied sequences), append ?family=<_family_>
-<br>To additionally highlight the proteins associated with specified genes from that family, append ?family=<_family_>&gene_name=<_gene1_>,<_gene2_>,<...>,<_geneN_>
+To view the phylogram for a gene family with sequences inserted by an existing job, append
+<br>&nbsp;&nbsp; _?family=<_family_>&job=<_job_id_>_
 
-To automatically determine the gene family associated with one or more specified genes, append ?gene_name=<_gene1_>,<_gene2_>,<...>,<_geneN_>
+To view the phylogram for a gene family alone (with no user-supplied sequences), append
+<br>&nbsp;&nbsp; _?family=<_family_>_
+<br>To additionally highlight the proteins associated with specified genes from that family, append
+<br>&nbsp;&nbsp; _?family=<_family_>&gene_name=<_gene1_>,<_gene2_>,<...>,<_geneN_>_
+
+To automatically determine the gene family associated with one or more specified genes, append
+<br>&nbsp;&nbsp; _?gene_name=<_gene1_>,<_gene2_>,<...>,<_geneN_>_
 <br>If this finds more than one unique gene family, it will display the results in a table. Choose one to display its phylogram, with any related proteins highlighted.
 
-To search for gene families by functional keywords, append ?search or ?search=<_keywords_>
+To search for gene families by functional keywords, append
+<br>&nbsp;&nbsp; _?search_
+<br>or
+<br>&nbsp;&nbsp; _?search=<_keywords_>_
 
 <!-- --------------------------------------------------------------------------------- -->
 

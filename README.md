@@ -51,5 +51,9 @@ To search for gene families by functional keywords, append
 <br>or
 <br>&nbsp;&nbsp; _?search=<_keywords_>_
 
+### Example FASTA sequences
+
+To use example FASTA files as input selections on the Funnotate home page (for example, to avoid having to hunt for them during a presentation), place them in your `static/examples/` subdirectory.
+
 <!-- --------------------------------------------------------------------------------- -->
 

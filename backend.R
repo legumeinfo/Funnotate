@@ -4,6 +4,7 @@ library(httr)
 library(InterMineR)
 library(jsonlite)
 library(stringi)
+library(stringr)
 library(yaml)
 # --------------------------------------------------------------
 
@@ -49,15 +50,15 @@ scrubber$p <- list(
 countBadChars <- function(ss0, ss1) {
   # assumes ss0 and ss1 are the same length,
   # as ss1 = ss0 with characters replaced
-  cc0 <- unlist(strsplit(ss0, split = ""))
-  cc1 <- unlist(strsplit(ss1, split = ""))
+  cc0 <- str_split_1(ss0, "")
+  cc1 <- str_split_1(ss1, "")
   sum(cc0 != cc1)
 }
 
 isProbablyNucleotideSequence <- function(lines) {
   ss <- lines[!startsWith(lines, ">")]
-  ss <- tolower(unlist(strsplit(ss, split = "")))
-  nn <- unlist(strsplit(scrubber$n$goodChars, split = ""))
+  ss <- tolower(str_split_1(ss, ""))
+  nn <- str_split_1(scrubber$n$goodChars, "")
   all(ss %in% nn)
 }
 
@@ -580,7 +581,7 @@ createSummaryTable <- function(job) {
   } else {
     ll.hmm <- readLines(job$hmmFile)
     ll.hmm <- ll.hmm[!startsWith(ll.hmm, "#")]
-    df.hmm <- as.data.frame(do.call(rbind, strsplit(ll.hmm, split = "\\s+")), stringsAsFactors = FALSE)
+    df.hmm <- as.data.frame(do.call(rbind, str_split(ll.hmm, "\\s+")), stringsAsFactors = FALSE)
     # Loop over all sequences, match with first column of df.ahrd
     df.h <- as.data.frame(do.call(rbind, lapply(df.ahrd[, 1], function(q) {
       df.hi <- df.hmm[df.hmm[, 3] == q, ]
@@ -654,7 +655,7 @@ msaOrderedLikeTree <- function(msa_in, tree) {
 
   # msa_in is a single string with rows separated by newlines,
   # so convert it to individual rows (like a FASTA file)
-  msa1 <- unlist(strsplit(msa_in, split = "\n"))
+  msa1 <- str_split_1(msa_in, "\n")
   nr <- length(msa1) # total number of rows (lines)
   ss <- which(startsWith(msa1, ">")) # indices of rows containing sequence name (= first row of each sequence)
   ee <- c(ss[-1] - 1, nr) # indices of last row of each sequence
@@ -762,7 +763,7 @@ buildUserPhylogram <- function(job, family) {
       allSeqNames <- names(fasta)
       # To correctly match user sequences by name,
       # remove any characters after and including the first whitespace
-      allSeqNames <- sapply(allSeqNames, function(sn) unlist(strsplit(sn, split = " "))[1])
+      allSeqNames <- sapply(allSeqNames, function(sn) str_split_i(sn, " ", 1))
       names(fasta) <- allSeqNames
       allSequences <- as.character(fasta)
 
@@ -869,7 +870,7 @@ genesToProteinsQuery <- function(family, genes) {
   family <- paste0(legfed_prefix, family)
 
   # convert genes to character vector
-  genes <- unlist(strsplit(URLdecode(genes), split = ","))
+  genes <- str_split_1(URLdecode(genes), ",")
 
   # find all genes in family
   family_constraints = setConstraints(
@@ -906,7 +907,7 @@ genesToProteinsQuery <- function(family, genes) {
 
 genesToGeneFamiliesQuery <- function(genes) {
   # convert genes to character vector
-  genes <- unlist(strsplit(URLdecode(genes), split = ","))
+  genes <- str_split_1(URLdecode(genes), ",")
 
   # find gene families associated with genes
   gene_constraints = setConstraints(
@@ -943,7 +944,7 @@ genesToGeneFamiliesQuery <- function(genes) {
     link = sprintf("<a href='?family=%s&gene_name=%s'>%s</a>", ff, gg_comma, ff))
 
   # add non-family row for any genes not found
-  gg_found <- unlist(strsplit(gg_comma, split = ","))
+  gg_found <- str_split_1(gg_comma, ",")
   gg_not_found <- setdiff(genes, gg_found)
   if (length(gg_not_found) > 0) {
     df_gene_families <- rbind(df_gene_families, data.frame(geneFamily = "", description = "Not found",

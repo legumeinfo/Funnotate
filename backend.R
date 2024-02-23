@@ -48,16 +48,18 @@ scrubber$p <- list(
 # Returns total number of bad characters in ss0
 # compared to scrubbed characters in ss1
 countBadChars <- function(ss0, ss1) {
-  # assumes ss0 and ss1 are the same length,
+  # assumes ss0 and ss1 have the same number of sequences (ns),
+  # and each sequence has the same number of characters,
   # as ss1 = ss0 with characters replaced
-  cc0 <- str_split_1(ss0, "")
-  cc1 <- str_split_1(ss1, "")
-  sum(cc0 != cc1)
+  ns <- length(ss0) # == length(ss1)
+  cc0 <- str_split(ss0, "")
+  cc1 <- str_split(ss1, "")
+  sum(sapply(1:ns, function(i) sum(cc0[[i]] != cc1[[i]]) ))
 }
 
 isProbablyNucleotideSequence <- function(lines) {
   ss <- lines[!startsWith(lines, ">")]
-  ss <- tolower(str_split_1(ss, ""))
+  ss <- tolower(str_split_1(str_flatten(ss), ""))
   nn <- str_split_1(scrubber$n$goodChars, "")
   all(ss %in% nn)
 }

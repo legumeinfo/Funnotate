@@ -59,6 +59,13 @@ ui <- function(req) {
       singleton(tags$head(tags$script(src='static/js/biojs-io-newick.min.js', type='text/javascript'))),
       # InterMine
       singleton(tags$head(tags$script(src='static/js/im.js', type='text/javascript'))),
+      # @legumeinfo/taxon-symbology (for taxon colors)
+      singleton(tags$head(HTML(
+        "<script type='module'>
+          import { taxonChroma } from 'https://cdn.jsdelivr.net/npm/@legumeinfo/taxon-symbology@1.0.0/dist/taxon-symbology.min.js';
+          window.taxonChroma = taxonChroma;
+        </script>"
+      ))),
       # Ours (for phylotree and distance scale)
       singleton(tags$head(tags$link(href='static/css/phylogram.css', rel='stylesheet', type='text/css'))),
       singleton(tags$head(tags$script(src='static/js/phylogram.js', type='text/javascript'))),

@@ -1,35 +1,7 @@
 // =============================================================
 
 var DEFAULT_COLOR = '#d3d3d3';
-
-var OVERRIDES = {
-  'arabidopsis thaliana': DEFAULT_COLOR, // otherwise conflicts with ara = Arachis
-  'arachis ipaensis': '#aaab00',
-  '*user sequences': '#990000' // TODO: use genusToColor?
-}
-
-moreBrewerColors = chroma.brewer.Set2;
-
-genusToColor = {
-  // for legume genera
-  //'aes': '#......',
-  'api': moreBrewerColors[0],
-  'ara': '#bcbd22',
-  'caj': '#ffbb78',
-  'cha': moreBrewerColors[5],
-  'cic': '#2ca02c',
-  'gly': '#1f77b4',
-  'len': '#98df8a',
-  'lot': '#17becf',
-  'lup': '#ff9896',
-  'med': '#8c564b',
-  'pha': '#e377c2',
-  'pis': '#f7b6d2',
-  'tri': moreBrewerColors[2],
-  'USR': '#990000',
-  'vic': moreBrewerColors[4],
-  'vig': '#d62728'
-}
+var USER_SEQUENCE_COLOR = '#990000';
 
 genspToTaxon = {
   // legumes
@@ -66,57 +38,22 @@ genspToTaxon = {
   'solly': 'Solanum lycopersicum',
   'vitvi': 'Vitis vinifera'
 }
+
 taxonToGensp = function(taxon) {
   if (taxon == '*User sequences') return 'USR';
   var parts = taxon.toLowerCase().split(' ');
   return parts[0].substring(0, 3) + parts[1].substring(0, 2);
 }
 
-function fnv32a(str, hashSize) {
-  /* a consistent hashing algorithm
-     https://gist.github.com/vaiorabbit/5657561
-     http://isthe.com/chongo/tech/comp/fnv/#xor-fold
-  */
-  var FNV1_32A_INIT = 0x811c9dc5;
-  var hval = FNV1_32A_INIT;
-  for (var i = 0; i < str.length; i++) {
-    hval ^= str.charCodeAt(i);
-    hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
-  }
-  return (hval >>> 0) % hashSize;
-}
-
 function taxonToColor(taxon) {
-  var colorCache = {};
-  var LIGHTNESS_FACTOR = 1;
-  var MIN_LIGHTNESS = 0.3;
-
-  taxon = taxon.toLowerCase();
-  if (OVERRIDES === undefined) {
-    OVERRIDES = {};
-  }
-  if (OVERRIDES[taxon] !== undefined) {
-    return OVERRIDES[taxon];
-  }
-  if (colorCache[taxon] !== undefined) {
-    return colorCache[taxon];
-  }
-  var color = null;
-  var parts = taxon.split(' ');
-  var genus = parts[0];
-  var gen = genus.substring(0, 3);
-  var species = parts[1];
-
-  if (gen in genusToColor) {
-    var genusColor = genusToColor[gen];
-    var hue = chroma(genusColor).hsl()[0];
-    var lightness = MIN_LIGHTNESS + (fnv32a(species, 1000) / 1000) * (1 - 2*MIN_LIGHTNESS);
-    color = chroma(hue, 1, lightness*LIGHTNESS_FACTOR, 'hsl').hex();
-  } else {
-    color = DEFAULT_COLOR;
-  }
-  colorCache[taxon] = color;
-  return color;
+  return window.taxonChroma.get(taxon, {
+    'overrides' : {
+      // taxon name must be lower case
+      'arachis ipaensis' : '#aaab00',
+      'user sequences' : USER_SEQUENCE_COLOR,
+      '*user sequences' : USER_SEQUENCE_COLOR,
+    }
+  });
 }
 
 // =============================================================
@@ -214,7 +151,7 @@ function drawPhylotree(elementId) {
     })
     .fill(function(node) {
       var gen = node.node_name().substring(0, 3)
-      if (gen == 'USR') return(genusToColor[gen])
+      if (gen == 'USR') return(USER_SEQUENCE_COLOR)
       var gensp = node.node_name().substring(0, 5)
       if (gensp in genspToTaxon) return(taxonToColor(genspToTaxon[gensp]))
       else if (node.is_leaf() && !node.is_collapsed()) return(DEFAULT_COLOR);

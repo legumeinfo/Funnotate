@@ -68,7 +68,6 @@ ui <- function(req) {
       ))),
       # Ours (for phylotree and distance scale)
       singleton(tags$head(tags$link(href='static/css/phylogram.css', rel='stylesheet', type='text/css'))),
-      singleton(tags$head(tags$script(src='static/js/phylogram.js', type='text/javascript'))),
       extendShinyjs(script = "static/js/phylogram.js",
         functions = c("setPhylotree", "setPhylotreeLayout", "showSingletonNodes", "clearSubtreeFocus", "resetTaxa", "setMSA", "takePhylotreeSnapshot")
       ),

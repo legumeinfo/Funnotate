@@ -1,9 +1,9 @@
 // =============================================================
 
-var DEFAULT_COLOR = '#d3d3d3';
-var USER_SEQUENCE_COLOR = '#990000';
+const DEFAULT_COLOR = '#d3d3d3';
+const USER_SEQUENCE_COLOR = '#990000';
 
-genspToTaxon = {
+const genspToTaxon = {
   // legumes
   //'aesev': 'Aeschynomene evenia',
   'apiam': 'Apios americana',
@@ -39,7 +39,7 @@ genspToTaxon = {
   'vitvi': 'Vitis vinifera'
 }
 
-taxonToGensp = function(taxon) {
+function taxonToGensp(taxon) {
   if (taxon == '*User sequences') return 'USR';
   var parts = taxon.toLowerCase().split(' ');
   return parts[0].substring(0, 3) + parts[1].substring(0, 2);
@@ -513,7 +513,7 @@ function setTaxa(elementId) {
 
   // transform to objects expected by nvd3 chart
   var data = _.map(Object.keys(count).sort(), k => {
-    d = {
+    var d = {
       label: k,
       value: count[k],
       color: taxonToColor(k),
@@ -568,12 +568,13 @@ function countTaxa(tree) {
   recParse(root);
 
   var count = {};
+  var taxon;
   for (var leaf of leaves) {
-    gen = leaf.substring(0, 3);
+    var gen = leaf.substring(0, 3);
     if (gen == 'USR') {
       taxon = '*User sequences';
     } else {
-      gensp = leaf.substring(0, 5);
+      var gensp = leaf.substring(0, 5);
       if (gensp in genspToTaxon) {
         taxon = genspToTaxon[gensp];
       } else {
@@ -590,9 +591,9 @@ function countTaxa(tree) {
 }
 
 // User clicked on the legend to toggle a taxon
-handleTaxaSelection = function(elementTag) {
+function handleTaxaSelection(elementTag) {
   // first determine the selected taxa (in gensp format)
-  taxa = [];
+  var taxa = [];
   var legend = d3.select(elementTag);
   var data = legend.datum();
   data.forEach(function(series) {
@@ -614,8 +615,8 @@ handleTaxaSelection = function(elementTag) {
 
 // Reset all taxa to enabled/visible
 shinyjs.resetTaxa = function(args) {
-  elementId = args[0];
-  elementTag = "#" + elementId;
+  var elementId = args[0];
+  var elementTag = "#" + elementId;
   var legend = d3.select(elementTag);
   var data = legend.datum();
   data.forEach(function(series) { series.disabled = false });
@@ -722,7 +723,7 @@ function drawMSAView() {
   // Reload the sequences and set their 'hidden' attribute according to current visibility,
   // then call seqs.reset() which is much faster than set("hidden", !visible) for each one
   var seqs = JSON.parse(sessionStorage.getItem('msaSeqs'));
-  for (seq of seqs) {
+  for (var seq of seqs) {
     var seqName = seq["name"];
     var gensp = seqName.substring(0, 5);
     if (gensp.startsWith("USR")) gensp = "USR";

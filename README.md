@@ -6,11 +6,11 @@ R/Shiny application for functional annotation of user-supplied FASTA sequences (
 
 Uses third-party tools including
 
-* [ESTScan](http://estscan.sourceforge.net) to translate nucleotide sequences
+* [ESTScan](http://estscan.sourceforge.net) to translate nucleotide sequences (if needed)
 * [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi) alignment to reference gene databases (soybean, _Medicago_, _Arabidopsis_)
 * [InterProScan](https://www.ebi.ac.uk/interpro/search/sequence/) (methods: TIGRFAM, SMART, SUPERFAMILY, Gene3D, PIRSF, Pfam, Coils)
 * [HMMer](http://hmmer.org) for assigning gene family
-* [AHRD](https://github.com/groupschoof/AHRD/blob/master/README.textile) - Automated Human Readable Descriptions
+* [AHRD](https://github.com/groupschoof/AHRD/blob/master/README.textile) (Automated Human Readable Descriptions) for best-hit extraction
 
 <img src="static/funnotate-process.png" width="400px" height="272px">
 

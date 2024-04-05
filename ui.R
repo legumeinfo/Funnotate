@@ -92,18 +92,20 @@ ui <- function(req) {
         htmlOutput("seqError", style = "color: red"),
         p(""),
         wellPanel(HTML(paste(
-          "Annotation pipeline:",
-          "<br>",
-          "<br>1. <a href='http://estscan.sourceforge.net' target='_blank'>ESTScan</a> if needed (to translate nucleotide uploads)",
-          "<br>2. <a href='https://blast.ncbi.nlm.nih.gov/Blast.cgi' target='_blank'>BLAST</a> alignment to reference gene databases (soy, <i>Medicago</i>, <i>Arabidopsis</i>)",
+          "<p>Annotation pipeline:</p>",
+          "<p><img src='static/funnotate-process.png' width='400px' height='272px'></p>",
+          "<p>",
+          "1. <a href='http://estscan.sourceforge.net' target='_blank'>ESTScan</a> to translate nucleotide sequences (if needed)",
+          "<br>2. <a href='https://blast.ncbi.nlm.nih.gov/Blast.cgi' target='_blank'>BLAST</a> alignment to reference gene databases (soybean, <i>Medicago</i>, <i>Arabidopsis</i>)",
           "<br>3. (optional) <a href='https://www.ebi.ac.uk/interpro/search/sequence/' target='_blank'>InterProScan</a> (methods: TIGRFAM, SMART, SUPERFAMILY, Gene3D, PIRSF, Pfam, Coils)",
-          "<br>4. Assignment of gene family (using <a href='http://hmmer.org' target='_blank'>HMMer</a>)",
-          "<br>5. Best-hit extraction by <a href='https://github.com/groupschoof/AHRD/blob/master/README.textile' target='_blank'>AHRD</a> (Automated Human Readable Descriptions)",
-          "<br>",
-          "<br>Results include: Legume Federation gene family, AHRD descriptor, best BLAST hits, GO and InterPro ID (the latter two only if InterProScan is run)",
+          "<br>4. <a href='http://hmmer.org' target='_blank'>HMMer</a> for assigning gene family",
+          "<br>5. <a href='https://github.com/groupschoof/AHRD/blob/master/README.textile' target='_blank'>AHRD</a> (Automated Human Readable Descriptions) for best-hit extraction",
+          "</p>",
+          "<p>",
+          "Summary table results include: Legume Federation gene family, AHRD descriptor, best BLAST hits, GO and InterPro ID (the latter two only if InterProScan is run)",
           "<br>Complete output files for each analysis are also provided.",
-          "<br>",
-          "<br>Note that the gene families which are searched are the families displayed on LIS, <i>i.e.</i> those having at least one member which is an LIS species."
+          "</p>",
+          "<p>Note that the gene families which are searched are the families displayed on LIS, <i>i.e.</i> those having at least one member which is an LIS species.</p>"
         )))
       ),
 

@@ -100,7 +100,7 @@ ui <- function(req) {
           "<br>4. Assignment of gene family (using <a href='http://hmmer.org' target='_blank'>HMMer</a>)",
           "<br>5. Best-hit extraction by <a href='https://github.com/groupschoof/AHRD/blob/master/README.textile' target='_blank'>AHRD</a> (Automated Human Readable Descriptions)",
           "<br>",
-          "<br>Results include: Phytozome gene family, AHRD descriptor, best BLAST hits, GO and InterPro ID (the latter two only if InterProScan is run)",
+          "<br>Results include: Legume Federation gene family, AHRD descriptor, best BLAST hits, GO and InterPro ID (the latter two only if InterProScan is run)",
           "<br>Complete output files for each analysis are also provided.",
           "<br>",
           "<br>Note that the gene families which are searched are the families displayed on LIS, <i>i.e.</i> those having at least one member which is an LIS species."

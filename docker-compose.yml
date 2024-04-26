@@ -1,0 +1,45 @@
+services:
+  shiny:
+    build: .
+    ports:
+      - 8181:8181
+    volumes:
+      - type: bind
+        source: /falafel/funnotate/examples
+        target: /home/Funnotate/static/examples
+      - type: bind
+        source: /falafel/funnotate/upload
+        target: /home/Funnotate/static/upload
+      - type: bind
+        source: /falafel/funnotate/job
+        target: /home/Funnotate/static/job
+      - type: bind
+        source: /falafel/funnotate/estscan-3.0.3
+        target: /home/estscan
+      - type: bind
+        source: /falafel/funnotate/smat
+        target: /home/smat
+      - type: bind
+        source: /falafel/adf/e00/adf/blast-2.2.23
+        target: /home/blast
+      - type: bind
+        source: /falafel/funnotate/blast-dbs
+        target: /home/blast-dbs
+      - type: bind
+        source: /falafel/funnotate/AHRD
+        target: /home/AHRD
+      - type: bind
+        source: /falafel/adf/sw/interproscan-5.60-92.0
+        target: /home/interproscan
+      - type: bind
+        source: /falafel/adf/sw/hmmer-3.1b2-linux-intel-x86_64
+        target: /home/hmmer
+      - type: bind
+        source: /falafel/funnotate/hmmdb
+        target: /home/hmmdb
+    networks:
+      - network1
+networks:
+  network1:
+    name: lorax_default
+    external: true

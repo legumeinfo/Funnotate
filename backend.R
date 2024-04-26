@@ -9,7 +9,7 @@ library(yaml)
 # --------------------------------------------------------------
 
 # Global settings
-# setwd("/srv/shiny-server/Funnotate") # already there
+# setwd("/home/Funnotate") # already there
 settings <- read_yaml("settings.yml")
 
 # Global data:

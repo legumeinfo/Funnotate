@@ -3,7 +3,7 @@
 ############
 
 # Table of gene families, from LIS data store
-gene_families_data: https://data.legumeinfo.org/LEGUMES/Fabaceae/genefamilies/mixed.fam1.M65K/legume.mixed.fam1.M65K.info_annot_ahrd.tsv.gz
+gene_families_data: https://data.legumeinfo.org/LEGUMES/Fabaceae/genefamilies/legume.fam1.M65K/legume.fam1.M65K.info_annot_ahrd.tsv.gz
 
 # General settings
 num_threads: 5
@@ -11,41 +11,41 @@ num_threads: 5
 
 # ESTScan
 estscan:
-  exe: /falafel/funnotate/estscan-3.0.3/estscan
-  matrix: /falafel/funnotate/smat/medicago.smat
+  exe: /home/estscan/estscan
+  matrix: /home/smat/medicago.smat
 
 # BLAST: expects the databases in indexed format (.phr, .pin, .psq)
 blast:
-  exe: /falafel/adf/e00/adf/blast-2.2.23/bin/blastall
+  exe: /home/blast/bin/blastall
   # To use blastp [...] instead of blastall -p blastp [...],
   # exe: /usr/bin/blastp
   dbs:
-    - /falafel/funnotate/blast-dbs/TAIR10_pep_20101209
-    - /falafel/funnotate/blast-dbs/Glyma.refseq_protein.fasta
-    - /falafel/funnotate/blast-dbs/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
+    - /home/blast-dbs/TAIR10_pep_20101209
+    - /home/blast-dbs/Glyma.refseq_protein.fasta
+    - /home/blast-dbs/Mt4.0v1_GenesProteinSeq_20130731_1800.fasta
 
 # AHRD
 ahrd:
   java: /usr/bin/java
-  jar: /falafel/funnotate/AHRD/ahrd.jar
-  yml: /falafel/funnotate/AHRD/ahrd_nosp.yml
+  jar: /home/AHRD/ahrd.jar
+  yml: /home/AHRD/ahrd_nosp_funnotate.yml
 
 # InterPro
 interpro:
-  exe: /falafel/adf/sw/interproscan-5.3-46.0/interproscan-java1.7.sh
+  exe: /home/interproscan/interproscan.sh
   params: -appl TIGRFAM,SMART,SUPERFAMILY,Gene3D,PIRSF,Pfam,Coils
 
 # HMMer
 hmmer:
-  exe: /falafel/adf/sw/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmscan
-  db: /falafel/funnotate/hmmdb/legfed_v1_0/legfed_v1_0.hmm
+  exe: /home/hmmer/binaries/hmmscan
+  db: /home/hmmdb/legfed_v1_0/legfed_v1_0.hmm
   # Unused:
   # params: [...]
   # target_families: [...]/07_family_fasta
 
 # Lorax
 lorax:
-  url: 127.0.0.1:9100
+  url: lorax-flask-1:8000
   # args: [...]
 
 ############

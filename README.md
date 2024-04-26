@@ -53,7 +53,7 @@ To search for gene families by functional keywords, append
 
 ### Example FASTA sequences
 
-To use example FASTA files as input selections on the Funnotate home page (for example, to avoid having to hunt for them during a presentation), place them in your `static/examples/` subdirectory.
+To use example FASTA files as input selections on the Funnotate home page (for example, to avoid having to hunt for them during a presentation), place them in the source directory corresponding to your `/home/Funnotate/static/examples/` target directory (specified in `docker-compose.yml`).
 
 <!-- --------------------------------------------------------------------------------- -->
 

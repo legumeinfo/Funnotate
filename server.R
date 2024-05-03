@@ -20,8 +20,8 @@ server <- function(input, output, session) {
     family <- urlFields$family
     if (!is.null(family)) {
       family <- URLdecode(family)
-      # strip full-yuck prefix (if any) to extract the L_xxxxxx part of the family name
-      family <- stri_match_first(urlFields$family, regex=".*(L_.+$)")[, 2]
+      # make sure the family name is full-yuck
+      if (!startsWith(family, legfed_prefix)) family <- paste0(legfed_prefix, family)
     }
     numUrlFields <- length(urlFields)
     if (numUrlFields == 1) {
@@ -63,8 +63,6 @@ server <- function(input, output, session) {
         } else {
           # go directly to phylogram page for this family, as for (family & gene_name) query below
           family <- df_gene_families$geneFamily[1]
-          # strip full-yuck prefix (if any) to extract the L_xxxxxx part of the family name
-          family <- stri_match_first(family, regex=".*(L_.+$)")[, 2]
           nullJob <- NULL
           existingPhylogram <- buildUserPhylogram(nullJob, family)
           if (!is.null(existingPhylogram)) {
@@ -423,7 +421,7 @@ server <- function(input, output, session) {
       gfds <- gsub(go, link.go, gfds)
     }
     output$phylogramFamilyInfo <- renderUI(HTML(
-      sprintf("<b>%s%s</b>: %s", legfed_prefix, phylogramInfo$family, paste(gfds, collapse = "; "))
+      sprintf("<b>%s</b>: %s", phylogramInfo$family, paste(gfds, collapse = "; "))
     ))
 
     if (!is.null(phylogramInfo$tree)) {

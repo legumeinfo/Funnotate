@@ -5,26 +5,34 @@ const USER_SEQUENCE_COLOR = '#990000';
 
 const genspToTaxon = {
   // legumes
-  //'aesev': 'Aeschynomene evenia',
+  'acacr': 'Acacia crassicarpa',
+  'aesev': 'Aeschynomene evenia',
   'apiam': 'Apios americana',
   'aradu': 'Arachis duranensis',
   'arahy': 'Arachis hypogaea',
   'araip': 'Arachis ipaensis',
+  'bauva': 'Bauhinia variegata',
   'cajca': 'Cajanus cajan',
+  'cerca': 'Cercis canadensis',
   'chafa': 'Chamaecrista fasciculata',
   'cicar': 'Cicer arietinum',
   'cicec': 'Cicer echinospermum',
   'cicre': 'Cicer reticulatum',
+  'dalod': 'Dalbergia odorifera',
   'glyma': 'Glycine max',
+  'labpu': 'Lablab purpureus',
   'lencu': 'Lens culinaris',
   'lotja': 'Lotus japonicus',
   'lupal': 'Lupinus albus',
   'lupan': 'Lupinus angustifolius',
   'medsa': 'Medicago sativa',
   'medtr': 'Medicago truncatula',
+  'phach': 'Phanera championii',
   'phalu': 'Phaseolus lunatus',
   'phavu': 'Phaseolus vulgaris',
   'pissa': 'Pisum sativum',
+  'sento': 'Senna tora',
+  'singl': 'Sindora glabra',
   'tripr': 'Trifolium pratense',
   'trire': 'Trifolium repens',
   'vicfa': 'Vicia faba',
@@ -35,6 +43,7 @@ const genspToTaxon = {
   'arath': 'Arabidopsis thaliana',
   'cucsa': 'Cucumis sativus',
   'prupe': 'Prunus persica',
+  'quisa': 'Quillaja saponaria', // closely related to legumes
   'solly': 'Solanum lycopersicum',
   'vitvi': 'Vitis vinifera'
 }
@@ -49,7 +58,7 @@ function taxonToColor(taxon) {
   return window.taxonChroma.get(taxon, {
     'overrides' : {
       // taxon name must be lower case
-      'arachis ipaensis' : '#aaab00',
+      'quillaja saponaria' : '#666666',
       'user sequences' : USER_SEQUENCE_COLOR,
       '*user sequences' : USER_SEQUENCE_COLOR,
     }

@@ -5,6 +5,9 @@ services:
       - 8181:8181
     volumes:
       - type: bind
+        source: /falafel/funnotate/gene-families
+        target: /home/gene-families
+      - type: bind
         source: /falafel/funnotate/examples
         target: /home/Funnotate/static/examples
       - type: bind
@@ -35,7 +38,7 @@ services:
         source: /falafel/adf/sw/hmmer-3.1b2-linux-intel-x86_64
         target: /home/hmmer
       - type: bind
-        source: /falafel/funnotate/hmmdb
+        source: /falafel/legumeinfo/data/public/Gene_families
         target: /home/hmmdb
     networks:
       - network1

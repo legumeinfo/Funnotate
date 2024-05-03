@@ -271,8 +271,7 @@ ui <- function(req) {
     postData <- list(seqSource = "POSTed sequence(s)")
     postData$rawFasta <- URLdecode(stri_match_first(postString, regex="fasta=([^&]+)&?")[, 2])
     postData$type <- stri_match_first(postString, regex="type=([^&]+)&?")[, 2]
-    geneFamily <- stri_match_first(postString, regex="geneFamily=([^&]+)&?")[, 2]
-    postData$geneFamily <- stri_match_first(geneFamily, regex = "(L_[A-Z0-9]{6})")[, 2]
+    postData$geneFamily <- stri_match_first(postString, regex="geneFamily=([^&]+)&?")[, 2]
     seqFile <- tempfile()
     write(postData$rawFasta, seqFile)
     if (postData$type == "n") {

@@ -15,17 +15,13 @@ settings <- read_yaml("settings.yml")
 # Global data:
 # Read table of gene families
 getGeneFamilies <- function() {
-  gfFile <- tempfile()
-  download.file(settings$gene_families_data, gfFile)
-  df.gf <- read.table(gzfile(gfFile, "rt"), header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
-  unlink(gfFile)
+  df.gf <- read.table(settings$gene_families_data, header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
   names(df.gf) <- c("name", "descriptor")
-  df.gf$name <- gsub("-consensus", "", df.gf$name)
   df.gf
 }
 df.geneFamilies <- getGeneFamilies()
 
-legfed_prefix <- "legfed_v1_0."
+legfed_prefix <- "Legume.fam3."
 
 # LegumeMine service
 legumeMine <- initInterMine(mine = listMines()["LegumeMine"])
@@ -679,12 +675,15 @@ msaOrderedLikeTree <- function(msa_in, tree) {
 
 # Write sequences and their names for a given (job, gene family) to a temporary file for input to Lorax
 # TODO: better description, refactoring
-buildUserPhylogram <- function(job, family) {
+buildUserPhylogram <- function(job, family0) {
+  # Convert any '.' in the family name to '_' so Lorax does not misinterpret them
+  family <- gsub("\\.", "_", family0)
+
   # TODO: error checking...
 
   # output: append user phylogram information or status/error messages, as appropriate
   userPhylogramInfo <- list(family = family, done = FALSE)
-  i.match <- which(grepl(family, df.geneFamilies$name))
+  i.match <- which(grepl(family0, df.geneFamilies$name))
   userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "unknown", df.geneFamilies$descriptor[i.match])
 
   if (is.null(job)) {
@@ -749,12 +748,12 @@ buildUserPhylogram <- function(job, family) {
 
       # Find matching sequences for family
       df.summary.txt <- read.table(job$summaryFile, header = TRUE, sep = "\t", comment.char = "", stringsAsFactors = FALSE)
-      ff.matches <- (df.summary.txt$Gene.Family == family)
+      ff.matches <- (df.summary.txt$Gene.Family == family0)
       seqNames <- df.summary.txt$Query[ff.matches]
       numMatchingSequences <- length(seqNames)
       # If there are no matches, let the user know (and return)
       if (numMatchingSequences == 0) {
-        userPhylogramInfo$message <- paste("No matching sequences for", family)
+        userPhylogramInfo$message <- paste("No matching sequences for", family0)
         userPhylogramInfo$done <- TRUE
         logError(sprintf("%s (job %s)", userPhylogramInfo$message, job$id))
         return(userPhylogramInfo)
@@ -790,14 +789,14 @@ buildUserPhylogram <- function(job, family) {
 
       if (sequencesCode == 500) {
         # Internal Server Error
-        userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree for %s (no sequences).", sequencesCode, family)
+        userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree for %s (no sequences).", sequencesCode, family0)
         userPhylogramInfo$done <- TRUE
         logError(sprintf("%s (job %s)", userPhylogramInfo$message, job$id))
         return(userPhylogramInfo)
       } else if (sequencesCode != 200) {
         userPhylogramInfo$message <- sprintf("Error %d: Sequence upload for tree computation was not successful.", sequencesCode)
         userPhylogramInfo$done <- TRUE
-        logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family, job$id))
+        logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family0, job$id))
         return(userPhylogramInfo)
       } else {
         # Tree computation using hmmalign
@@ -807,7 +806,7 @@ buildUserPhylogram <- function(job, family) {
         if (hmmalignCode != 200) {
           userPhylogramInfo$message <- sprintf("Error %d: Launch of tree computation was not successful.", hmmalignCode)
           userPhylogramInfo$done <- TRUE
-          logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family, job$id))
+          logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family0, job$id))
         } else {
           userPhylogramInfo$message <- "Tree computation launched successfully."
         }
@@ -817,20 +816,20 @@ buildUserPhylogram <- function(job, family) {
     } else {
       userPhylogramInfo$message <- sprintf("Error %d: Unable to compute tree.", statusCode)
       userPhylogramInfo$done <- TRUE
-      logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family, job$id))
+      logError(sprintf("%s (family %s, job %s)", userPhylogramInfo$message, family0, job$id))
       return(userPhylogramInfo)
     }
   }, warning = function(w) {
     # Report Lorax warnings (note that w alone returns a less specific message)
     userPhylogramInfo$message <- paste(w, "<br>The Funnotate sysadmin has been notified.")
     userPhylogramInfo$done <- TRUE
-    logError(sprintf("%s (family %s, job %s)", trimws(as.character(w)), family, job$id))
+    logError(sprintf("%s (family %s, job %s)", trimws(as.character(w)), family0, job$id))
     return(userPhylogramInfo)
   }, error = function(e) {
     # Report Lorax errors (note that e alone returns a less specific message)
     userPhylogramInfo$message <- paste(e, "<br>The Funnotate sysadmin has been notified. Please try again later.")
     userPhylogramInfo$done <- TRUE
-    logError(sprintf("%s (family %s, job %s)", trimws(as.character(e)), family, job$id))
+    logError(sprintf("%s (family %s, job %s)", trimws(as.character(e)), family0, job$id))
   })
 }
 
@@ -868,8 +867,8 @@ geneFamilySearchQuery <- function(keywords) {
 # --------------------------------------------------------------
 
 genesToProteinsQuery <- function(family, genes) {
-  # add prefix to restore full-yuck gene family name for the query
-  family <- paste0(legfed_prefix, family)
+  # if necessary, add prefix to ensure full-yuck gene family name for the query
+  if (!startsWith(family, legfed_prefix)) family <- paste0(legfed_prefix, family)
 
   # convert genes to character vector
   genes <- str_split_1(URLdecode(genes), ",")

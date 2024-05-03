@@ -3,7 +3,7 @@
 ############
 
 # Table of gene families, from LIS data store
-gene_families_data: https://data.legumeinfo.org/LEGUMES/Fabaceae/genefamilies/legume.fam1.M65K/legume.fam1.M65K.info_annot_ahrd.tsv.gz
+gene_families_data: /home/gene-families/21_hmmemit_consen.ahrd.tsv
 
 # General settings
 num_threads: 5
@@ -38,7 +38,7 @@ interpro:
 # HMMer
 hmmer:
   exe: /home/hmmer/binaries/hmmscan
-  db: /home/hmmdb/legfed_v1_0/legfed_v1_0.hmm
+  db: /home/hmmdb/legume.fam3.VLMQ/legume.fam3.hmm
   # Unused:
   # params: [...]
   # target_families: [...]/07_family_fasta

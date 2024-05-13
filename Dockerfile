@@ -2,7 +2,8 @@
 FROM rocker/shiny
 
 # Bioconductor
-FROM bioconductor/bioconductor_docker:devel
+# InterMineR is deprecated in Bioconductor >= 3.20, so use 3.19
+FROM bioconductor/bioconductor_docker:RELEASE_3_19
 
 # Install R packages
 RUN R -e "install.packages(c('shiny', 'BiocManager', 'cicerone', 'DT', 'future', 'httr', 'jsonlite', 'promises', 'shinyjs', 'stringi', 'stringr', 'yaml'))"

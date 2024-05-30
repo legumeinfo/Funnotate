@@ -60,7 +60,7 @@ function taxonToColor(taxon) {
 
 var legumeMine = new intermine.Service({ root: 'https://mines.legumeinfo.org/legumemine/service/' });
 
-const LINKOUTS_BASE_URL = 'https://linkouts.services.legumeinfo.org';
+const LINKOUTS_BASE_URL = 'https://services.lis.ncgr.org';
 
 function lineWithLink(href, text) {
   return '<p><a href="' + href + '" target=_blank>' + text + '</a></p>';

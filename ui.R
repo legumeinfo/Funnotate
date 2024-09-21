@@ -62,7 +62,7 @@ ui <- function(req) {
       # @legumeinfo/taxon-symbology (for taxon colors)
       singleton(tags$head(HTML(
         "<script type='module'>
-          import { taxonChroma } from 'https://cdn.jsdelivr.net/npm/@legumeinfo/taxon-symbology@1.0.0/dist/taxon-symbology.min.js';
+          import { taxonChroma } from 'https://cdn.jsdelivr.net/npm/@legumeinfo/taxon-symbology@1.1.0/dist/taxon-symbology.min.js';
           window.taxonChroma = taxonChroma;
         </script>"
       ))),

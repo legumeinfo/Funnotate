@@ -309,7 +309,16 @@ function onTreeNodeClick(node) {
     // Leaf nodes: post dialog with linkouts
     const node_fullname = node.node_name();
     var node_name = node_fullname;
-    if (node_name.startsWith('USR.')) node_name = node_name.substring(4);
+    if (node_name.startsWith('USR.')) {
+      // Find first (likely) gensp in node_name
+      const rgx = /\.[a-z]{5}\./;
+      const s = node_name.search(rgx);
+      if (s >= 0) {
+        node_name = node_name.substring(s + 1);
+      } else {
+        node_name = '';
+      }
+    }
     var gensp = node_name.substring(0, 5);
     if (gensp in genspToTaxon) {
       // Get corresponding gene identifier from LegumeMine
@@ -329,7 +338,7 @@ function onTreeNodeClick(node) {
       };
       legumeMine.rows(query).then(function(rows) {
         if (rows.length == 0) {
-          showDialog(node_name, 'Non-legume, no linkouts available.');
+          showDialog(node_name, 'No linkouts available, sequence not identified in LegumeMine.');
           return;
         }
         var gene_id = rows[0][0];
@@ -341,7 +350,7 @@ function onTreeNodeClick(node) {
               content += lineWithLink(obj.href, obj.text);
             });
           } else {
-            content += 'No linkouts found.';
+            content += 'No linkouts found in gene_linkouts microservice.';
           }
 /*
           // for the organism and feature links (unused)
@@ -359,7 +368,7 @@ function onTreeNodeClick(node) {
       });
     } else {
       // phylogram leaf nodes should always have a gensp, so we may never reach here, but post a message if we do
-      showDialog(node_fullname, 'No linkouts available.');
+      showDialog(node_fullname, 'No linkouts available, taxon not recognized.');
     }
   } else {
     // Internal node actions

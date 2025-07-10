@@ -252,7 +252,7 @@ ui <- function(req) {
             tags$div(id = "phylotree"),
             HTML(paste("<p style='font-size:9px; text-align: right;'>",
               "<a href='https://tntvis.github.io/tnt.tree/' target='_blank'>TnT Tree</a>",
-              " &bull; <a href='https://github.com/daviddao/biojs-io-newick'>biojs-io-newick</a>",
+              " &bull; <a href='https://github.com/daviddao/biojs-io-newick' target='_blank'>biojs-io-newick</a>",
               " &bull; <a href='https://github.com/gka/chroma.js/' target='_blank'>Chroma.js</a>",
               " &bull; <a href='https://jqueryui.com' target='_blank'>jQuery UI</a>",
               "</p>"

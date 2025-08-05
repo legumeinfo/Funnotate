@@ -178,7 +178,7 @@ server <- function(input, output, session) {
       output$page <- renderText("upload")
       updateQueryString(sprintf("?upload=%d", rv$upload$index))
     }, error = function(e) {
-      output$seqError <- renderUI("Error: Sequence(s) not valid FASTA")
+      output$seqError <- renderUI(as.character(e))
     }, finally = {
       if (!is.null(seqFile)) unlink(seqFile)
     })

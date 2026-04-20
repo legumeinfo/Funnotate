@@ -4,6 +4,7 @@
 
 # Table of gene families, from LIS data store
 gene_families_data: /home/gene-families/21_hmmemit_consen.ahrd.tsv
+old_gene_families_data: /home/gene-families/legume.fam1.M65K.info_annot_ahrd.tsv
 
 # General settings
 num_threads: 5

@@ -13,15 +13,30 @@ library(yaml)
 settings <- read_yaml("settings.yml")
 
 # Global data:
-# Read table of gene families
+# Read tables of gene families
 getGeneFamilies <- function() {
   df.gf <- read.table(settings$gene_families_data, header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
   names(df.gf) <- c("name", "descriptor")
   df.gf
 }
 df.geneFamilies <- getGeneFamilies()
-
+getOldGeneFamilies <- function() {
+  df.gf <- read.table(settings$old_gene_families_data, header = FALSE, sep = "\t", quote = "", stringsAsFactors = FALSE)
+  names(df.gf) <- c("name", "descriptor")
+  df.gf$name <- gsub("-consensus", "", df.gf$name)
+  df.gf
+}
+df.oldGeneFamilies <- getOldGeneFamilies()
+# Prefixes and regexes for new and old gene families
 legfed_prefix <- "Legume.fam3."
+legfed_regex <- "^[0-9]{5}$"
+legfed_prefix_old <- "legfed_v1_0."
+legfed_regex_old <- "^L_[A-Z0-9]{6}$"
+legfed_regex_old_core <- substring(legfed_regex_old, 2)
+legfed_regex_old_core_group <- sprintf("(%s)", legfed_regex_old_core)
+isOldGeneFamily <- function(family) {
+  grepl(legfed_regex_old_core, family)
+}
 
 # LegumeMine service
 legumeMine <- initInterMine(mine = listMines()["LegumeMine"])
@@ -683,8 +698,13 @@ buildUserPhylogram <- function(job, family0) {
 
   # output: append user phylogram information or status/error messages, as appropriate
   userPhylogramInfo <- list(family = family, done = FALSE)
-  i.match <- which(grepl(family0, df.geneFamilies$name))
-  userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "unknown", df.geneFamilies$descriptor[i.match])
+  if (isOldGeneFamily(family0)) {
+    i.match <- which(grepl(family0, df.oldGeneFamilies$name))
+    userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "unknown", df.oldGeneFamilies$descriptor[i.match])
+  } else {
+    i.match <- which(grepl(family0, df.geneFamilies$name))
+    userPhylogramInfo$descriptor <- ifelse(length(i.match) == 0, "unknown", df.geneFamilies$descriptor[i.match])
+  }
 
   if (is.null(job)) {
     # Display precomputed phylotree and MSA for the given family
@@ -868,7 +888,11 @@ geneFamilySearchQuery <- function(keywords) {
 
 genesToProteinsQuery <- function(family, genes) {
   # if necessary, add prefix to ensure full-yuck gene family name for the query
-  if (!startsWith(family, legfed_prefix)) family <- paste0(legfed_prefix, family)
+  if (isOldGeneFamily(family)) {
+    if (!startsWith(family, legfed_prefix_old)) family <- paste0(legfed_prefix_old, family)
+  } else {
+    if (!startsWith(family, legfed_prefix)) family <- paste0(legfed_prefix, family)
+  }
 
   # convert genes to character vector
   genes <- str_split_1(URLdecode(genes), ",")

@@ -20,8 +20,15 @@ server <- function(input, output, session) {
     family <- urlFields$family
     if (!is.null(family)) {
       family <- URLdecode(family)
-      # make sure the family name is full-yuck
-      if (!startsWith(family, legfed_prefix)) family <- paste0(legfed_prefix, family)
+      if (isOldGeneFamily(family)) {
+        # old gene family (fam1)
+        # strip full-yuck prefix (if any) to extract the L_xxxxxx part of the family name
+        family <- stri_match_first(urlFields$family, regex = legfed_regex_old_core_group)[, 2]
+      } else {
+        # new gene family (fam3)
+        # make sure the family name is full-yuck
+        if (!startsWith(family, legfed_prefix)) family <- paste0(legfed_prefix, family)
+      }
     }
     numUrlFields <- length(urlFields)
     if (numUrlFields == 1) {
@@ -63,6 +70,11 @@ server <- function(input, output, session) {
         } else {
           # go directly to phylogram page for this family, as for (family & gene_name) query below
           family <- df_gene_families$geneFamily[1]
+          if (isOldGeneFamily(family)) {
+            # old gene family (fam1)
+            # strip full-yuck prefix (if any) to extract the L_xxxxxx part of the family name
+            family <- stri_match_first(family, regex = legfed_regex_old_core_group)[, 2]
+          }
           nullJob <- NULL
           existingPhylogram <- buildUserPhylogram(nullJob, family)
           if (!is.null(existingPhylogram)) {
@@ -371,19 +383,29 @@ server <- function(input, output, session) {
       seqNames = unlist(input$postData$seqNames), sequences = unlist(input$postData$seqs))
     rv$upload <- createNewUpload(seq, input$postData$type)
 
-    job <- createNewJobWithGeneFamily(rv$upload, input$postData$geneFamily)
+    geneFamily <- input$postData$geneFamily
+    if (isOldGeneFamily(geneFamily)) {
+      # old gene family (fam1)
+      # strip full-yuck prefix (if any) to extract the L_xxxxxx part of the family name
+      geneFamily <- stri_match_first(geneFamily, regex = legfed_regex_old_core_group)[, 2]
+    } else {
+      # new gene family (fam3)
+      # make sure the family name is full-yuck
+      if (!startsWith(geneFamily, legfed_prefix)) geneFamily <- paste0(legfed_prefix, geneFamily)
+    }
+    job <- createNewJobWithGeneFamily(rv$upload, geneFamily)
     jobId <- job$id
     runJobWithGeneFamily(job)
     job <- readJob(jobId)
 
     # Create a minimal summary table (just Query and Gene.Family columns)
-    df.summary <- data.frame(Query = sort(seq$seqNames), Gene.Family = input$postData$geneFamily, stringsAsFactors = FALSE)
+    df.summary <- data.frame(Query = sort(seq$seqNames), Gene.Family = geneFamily, stringsAsFactors = FALSE)
     if (!file.exists(job$summaryFile)) {
       write.table(df.summary, job$summaryFile, sep = "\t", quote = FALSE, row.names = FALSE)
     }
 
     output$page <- reactive({
-      loraxResults <- buildUserPhylogram(job, input$postData$geneFamily)
+      loraxResults <- buildUserPhylogram(job, geneFamily)
       displayPhylogram(job, loraxResults)
       "phylogram"
     })
@@ -421,7 +443,10 @@ server <- function(input, output, session) {
       gfds <- gsub(go, link.go, gfds)
     }
     output$phylogramFamilyInfo <- renderUI(HTML(
-      sprintf("<b>%s</b>: %s", phylogramInfo$family, paste(gfds, collapse = "; "))
+      ifelse(isOldGeneFamily(phylogramInfo$family),
+        sprintf("<b>%s%s</b>: %s", legfed_prefix_old, phylogramInfo$family, paste(gfds, collapse = "; ")),
+        sprintf("<b>%s</b>: %s", gsub("_", "\\.", phylogramInfo$family), paste(gfds, collapse = "; "))
+      )
     ))
 
     if (!is.null(phylogramInfo$tree)) {

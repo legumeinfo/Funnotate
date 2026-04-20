@@ -46,7 +46,7 @@ hmmer:
 
 # Lorax
 lorax:
-  url: lorax-flask-1:8000
+  url: lorax_flask_1:8000
   # args: [...]
 
 ############

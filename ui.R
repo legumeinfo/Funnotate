@@ -31,6 +31,11 @@ sequenceSources <- function() {
   seqSources
 }
 
+parseUrlTag <- function(post_url, tag) {
+  tag_regex <- paste0(tag, "=([^&]+)&?")
+  stri_match_first(post_url, regex = tag_regex)[, 2]
+}
+
 ui <- function(req) {
   # The `req` object is a Rook environment
   # See https://github.com/jeffreyhorner/Rook#the-environment
@@ -269,9 +274,9 @@ ui <- function(req) {
     postString <- rawToChar(postBytes)
 
     postData <- list(seqSource = "POSTed sequence(s)")
-    postData$rawFasta <- URLdecode(stri_match_first(postString, regex="fasta=([^&]+)&?")[, 2])
-    postData$type <- stri_match_first(postString, regex="type=([^&]+)&?")[, 2]
-    postData$geneFamily <- stri_match_first(postString, regex="geneFamily=([^&]+)&?")[, 2]
+    postData$rawFasta <- URLdecode(parseUrlTag(postString, "fasta"))
+    postData$type <- parseUrlTag(postString, "type")
+    postData$geneFamily <- parseUrlTag(postString, "geneFamily")
     seqFile <- tempfile()
     write(postData$rawFasta, seqFile)
     if (postData$type == "n") {

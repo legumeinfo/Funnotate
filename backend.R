@@ -332,7 +332,7 @@ runESTScan <- function(job) {
     settings$estscan$exe, settings$estscan$matrix, inputFileTrans, job$inputFile)
   job$estscanStatus <- "ESTScan: Running"
   writeJob(job)
-  system(estscanCmd)
+  system(estscanCmd, ignore.stdout = TRUE)
   # Remove (first) semicolon after sequence name, if any
   system(sprintf("perl -pi -e 's/;//' %s", inputFileTrans))
   # TODO: Clean up the header (sequence name)?
@@ -360,7 +360,7 @@ runBLAST <- function(job) {
     blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -m 8",
     # blastCmd.i <- sprintf("%s -p blastp -d %s -i %s -o %s -e 0.0001 -v 200 -b 200 -m 0 -a 4",
       settings$blast$exe, settings$blast$dbs[i], job$inputFile, job$blastFiles[i])
-    system(blastCmd.i)
+    system(blastCmd.i, ignore.stdout = TRUE)
     if (fileReallyExists(job$blastFiles[i])) {
       job$blastStatus[i] <- sprintf("%s: Done", blastDb.i)
     } else {
@@ -401,7 +401,7 @@ runAHRD <- function(job) {
   ahrdTmpYmlFile <- tempfile()
   write_yaml(ahrdYml, ahrdTmpYmlFile)
   ahrdCmd <- sprintf("%s -Xmx2g -jar %s %s", settings$ahrd$java, settings$ahrd$jar, ahrdTmpYmlFile)
-  system(ahrdCmd)
+  system(ahrdCmd, ignore.stdout = TRUE)
   # clean up temporary file
   if (!is.na(ahrdTmpYmlFile) && file.exists(ahrdTmpYmlFile)) unlink(ahrdTmpYmlFile)
   # done
@@ -421,10 +421,10 @@ runInterPro <- function(job) {
   iprCmdXml <- sprintf("%s -i %s -o %s -f XML %s", settings$interpro$exe, job$inputFile, iprXml, settings$interpro$params)
   job$iprStatus <- "InterPro: Running"
   writeJob(job)
-  system(iprCmdXml)
+  system(iprCmdXml, ignore.stdout = TRUE)
   if (file.exists(iprXml)) {
     iprCmdRaw <- sprintf("%s -i %s -mode convert -f RAW -o %s", settings$interpro$exe, iprXml, job$iprFile)
-    system(iprCmdRaw)
+    system(iprCmdRaw, ignore.stdout = TRUE)
     # clean up temporary file
     if (!is.na(iprXml) && file.exists(iprXml)) unlink(iprXml)
     # done
@@ -449,7 +449,7 @@ runHMMer <- function(job) {
     settings$hmmer$exe, settings$num_threads, job$hmmFile, settings$hmmer$db, job$inputFile)
   job$hmmStatus <- "HMMer: Running"
   writeJob(job)
-  system(hmmCmd)
+  system(hmmCmd, ignore.stdout = TRUE)
   if (hmmFileReallyExists(job$hmmFile)) {
     job$hmmStatus <- "HMMer: Done"
   } else {
